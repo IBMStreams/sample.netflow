@@ -57,6 +57,15 @@ composite NetflowViewer
 			uint8 flowProtocol, // IP protocol number of flow, usually 1 for "icmp", 6 for "tcp", or 17 for "udp"
 			float64 flowDuration, // duration of flow, in seconds
 			uint64 flowSize ; // size of flow, in bytes
+
+		FlowTypeJava = 
+			int32 srcAddress, // IPv4 address of source of flow
+			int16 srcPort, // UDP/TCP port of source of flow
+			int32 dstAddress, // IPv4 address of destination of flow
+			int16 dstPort, // UDP/TCP port of destination of flow
+			int8 flowProtocol, // IP protocol number of flow, usually 1 for "icmp", 6 for "tcp", or 17 for "udp"
+			float64 flowDuration, // duration of flow, in seconds
+			int64 flowSize ; // size of flow, in bytes
 		
 		AggregatedLocationType = 
 			rstring country, // country, if known, or empty string if not
@@ -74,19 +83,33 @@ composite NetflowViewer
  
  	
 	
-	stream<FlowType> InjectedTuples = HTTPTupleInjection() {
+	stream<FlowTypeJava> InjectedTuples = HTTPTupleInjection() {
 		param
-			port: 8080;
+			port: $webPort;
 			
 		config
 			// Ensure the operators are in a single PE to have a single web-server
 			placement: partitionColocation("NetflowViewer");
 	}
 	
-	() as PrintInjectedTuples = Custom(InjectedTuples)
+ 
+
+	stream<FlowType> ConvertFlowType as O = Custom(InjectedTuples as I)
 	{
 		logic
-			onTuple InjectedTuples : printStringLn("InjectedTuples : " +(rstring) InjectedTuples) ;
+		
+			onTuple I: {
+				mutable O ot = {};
+				printStringLn("InjectedTuples : " +(rstring) InjectedTuples) ;
+				ot.srcAddress = (uint32) srcAddress;
+				ot.srcPort = (uint16) srcPort;
+				ot.dstAddress = (uint32) dstAddress;
+				ot.dstPort = (uint16) dstPort;
+				ot.flowProtocol = (uint8) flowProtocol;
+				ot.flowDuration = (float64) flowDuration;
+				ot.flowSize = (uint64) flowSize; 
+				submit(ot, O);
+			}
 	}
 
 	
@@ -101,7 +124,7 @@ composite NetflowViewer
 	 * output attribute assignment expressions. Output filters and attribute assignments are SPL expressions. They may use any of the built-in SPL functions, and any of these functions, which are specific to the IPAddressLocation operator: 
 	 * 
 	 */
-	stream<LocatedFlowType> LocatedFlowStream as Out = IPAddressLocation(InjectedTuples)
+	stream<LocatedFlowType> LocatedFlowStream as Out = IPAddressLocation(ConvertFlowType)
 	{
 		param
 			geographyDirectory : getThisToolkitDir() + $geoDirectory ;
