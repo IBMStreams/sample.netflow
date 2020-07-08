@@ -60,17 +60,7 @@ composite NetflowCollector
 			float64 flowDuration, // duration of flow, in seconds
 			uint64 flowSize ; // size of flow, in bytes
 		
-		AggregatedLocationType = 
-			rstring country, // country, if known, or empty string if not
-			rstring stateprovince, // state or province, if known, or empty string if not
-			rstring city, // city, if known, or empty string if not
-			float64 srcLatitude, // latitude of this location
-			float64 srcLongitude, // latitude of this longitude
-			float64 dstLatitude, // latitude of this location
-			float64 dstLongitude, // latitude of this longitude
-			float64 flowDuration, // duration of longest flow to/from this location, in seconds.milliseconds
-			uint64 flowRate ; // sum of rates of flow to/from this location, in bytes per second
-
+		
 
 	graph
  		
