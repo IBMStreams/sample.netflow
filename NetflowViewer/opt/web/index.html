@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+
+<html>
+
+  <head>
+    <meta charset="utf-8"/>
+    <title>IBM Netflow Viewer</title>
+<link rel="stylesheet" href="js/jquery-ui-themes-1.11.4/themes/smoothness/jquery-ui.min.css">
+  
+    <link rel="stylesheet" href="js/leaflet-0.7.7/leaflet.css" />
+    <link rel="stylesheet" href="js/leaflet.fullscreen-1.3.0/Control.FullScreen.css" />
+    <link rel="stylesheet" href="js/Leaflet.label-2016-01-09/dist/leaflet.label.css" />
+    <link rel="stylesheet" href="NetflowViewer.css" />
+    <script type="text/javascript" src="js/jQuery-1.11.3/jquery.min.js"></script>
+    <script type="text/javascript" src="js/jquery-ui-1.11.4/jquery-ui.min.js"></script>
+    <script type="text/javascript" src="js/leaflet-0.7.7/leaflet.js"></script>
+    <script type="text/javascript" src="js/leaflet.fullscreen-1.3.0/Control.FullScreen.js"></script>
+    <script type="text/javascript" src="js/Leaflet.label-2016-01-09/dist/leaflet.label.js"></script>
+  </head>
+  
+  <body>
+
+
+    <div id="map"></div>
+
+
+    <div id="titleOverlay">
+      <p id="titleText">
+        IBM Netflow Viewer
+        <img id="titleStatus" title="WebSocket not connected to IBM Streams" src="images/redX.png" /> 
+      </p>
+    </div>
+    
+  
+    <div id='focusOverlay'>
+      <p>
+  <!--      <input type="submit" name="focusButtons" class="focusButton" value="IBM Yorktown"  data-coordinates=" 41.209447 -73.801918 14"/> -->
+        <input type="submit" name="focusButtons" class="focusButton" value="IBM Berlin"  data-coordinates=" 52.409184 13.368369 14"/>
+        <input type="submit" name="focusButtons" class="focusButton" value="New York"      data-coordinates=" 41.18279  -73.79791   9"/>
+        <input type="submit" name="focusButtons" class="focusButton" value="North America" data-coordinates=" 37.8      -96.9       4"/>
+        <input type="submit" name="focusButtons" class="focusButton" value="Latin America" data-coordinates="-23.40276  -61.69922   3"/>
+        <input type="submit" name="focusButtons" class="focusButton" value="Europe"        data-coordinates=" 50.6808    15.73242   4"/>
+        <input type="submit" name="focusButtons" class="focusButton" value="Middle East"   data-coordinates=" 30.82678   31.28906   4"/>
+        <input type="submit" name="focusButtons" class="focusButton" value="Africa"        data-coordinates="  4.39023   23.02734   3"/>
+        <input type="submit" name="focusButtons" class="focusButton" value="Asia"          data-coordinates=" 27.68353  107.92969   4"/>
+        <input type="submit" name="focusButtons" class="focusButton" value="Pacific"       data-coordinates="-10.31492  134.82422   3"/>
+        <input type="submit" name="focusButtons" class="focusButton" value="world"         data-coordinates=" 15          0         3"/>
+        <img id="informationIcon" src="images/information-icon.png" />
+        <img id="creditsIcon" src="images/copyright-icon.png" />
+      </p>
+    </div>
+      
+
+    <div id="informationOverlay" class="informationOverlayHidden">
+      <img src="images/NetflowViewerDiagram.png" />
+      <p class="informationOverlayText">
+
+        The IBM Netflow Viewer uses 
+        <a href="http://ibmstreams.github.io/" target="_blank">IBM Streams</a>  
+        to illustrate the data flowing in and out of the
+        <a href="https://www.research.ibm.com/labs/watson/" target="_blank">IBM T.J.Watson Research center</a> 
+        in real time.
+
+        Network routers throughout the building continuously feed 
+        <a href="https://en.wikipedia.org/wiki/NetFlow" target="_blank">Netflow summaries</a> 
+        of their traffic to Streams.
+
+        Streams locates the source and destination address of each flow with geographical data obtained from 
+        <a href="https://www.maxmind.com/en/geoip2-services-and-databases" target="_blank">MaxMind</a>
+        and 
+        <a href="http://wiki.openstreetmap.org/wiki/Main_Page" target="_blank">OpenStreetMap</a>,
+        aggregates the flows by city,
+        and sends the aggregations to your browser in real time through a 
+        <a href="https://en.wikipedia.org/wiki/WebSocket" target="_blank">WebSocket</a>.
+
+        The aggregated flows are overlaid on maps and satellite imagery provided by
+        <a href="https://www.openstreetmap.org/" target="_blank">OpenStreetMap</a>, 
+        <a href="http://www.esri.com/" target="_blank">Esri</a>, and
+        <a href="https://earthdata.nasa.gov/" target="_blank">NASA</a>.
+
+        IBM offices and labs are drawn in blue; Internet websites are drawn in green.
+
+	    This application is anonymous: it does not decode,
+	    store, or display any information about the sources or destinations of 
+        any data flowing through the lab.
+
+      </p>
+      <p class="informationOverlayPrompt">click to close</p>
+    </div>
+
+
+
+
+
+    <div id="creditsOverlay" class="creditsOverlayHidden">
+        
+      <p>Credits:</p>
+      <ul>
+        <li>Netflow data provided by 
+          <a href="https://www.research.ibm.com/labs/watson/" target="_blank">IBM T.J.Watson Research center</a>.</li> 
+        <li>Netflow data geocoded and aggregated in real time by 
+          <a href="http://ibmstreams.github.io/" target="_blank">IBM Streams</a>.</li>
+        <li>Location data provided by 
+          <a href="https://www.maxmind.com/en/geoip2-services-and-databases" target="_blank">MaxMind</a> 
+          and 
+          <a href="http://wiki.openstreetmap.org/wiki/Main_Page" target="_blank">OpenStreetMap</a>.</li>
+        <li>
+          Maps provided by 
+          <a href="https://www.openstreetmap.org/" target="_blank">OpenStreetMap</a> 
+          and 
+          <a href="http://www.esri.com/" target="_blank">Esri</a>.</li>
+        <li>Satellite imagery provided by 
+          <a href="https://earthdata.nasa.gov/" target="_blank">NASA</a>.</li>
+        <li>Web composition tools provided by 
+          <a href="http://leafletjs.com/" target="_blank">Leaflet</a> 
+          and 
+          <a href="https://jquery.com/" target="_blank">jQuery</a>.</li>
+      </ul>
+      
+      
+      
+      <p class="creditsOverlayPrompt">click to close</p>
+    </div>
+
+
+
+    <script src="NetflowViewer.js"></script>
+    
+  </body>
+  
+</html>
+
+

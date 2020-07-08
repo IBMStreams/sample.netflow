@@ -1,0 +1,233 @@
+
+/*
+** Copyright (C) 2015, 2020 International Business Machines Corporation
+** All Rights Reserved
+*/
+namespace application ;
+
+use com.ibm.streamsx.network.ipv4::* ;
+use com.ibm.streamsx.network.source::* ;
+use com.ibm.streamsx.network.parse::* ;
+use com.ibm.streamsx.network.location::* ;
+use com.ibm.streamsx.inet.rest::* ;
+use com.ibm.streamsx.inet.wsserver::* ;
+use com.ibm.streamsx.inet.http::HTTPRequest;
+
+
+composite NetflowCollector
+{
+	param
+		expression<rstring> $networkInterface : getSubmissionTimeValue("networkInterface", "eth0") ;
+		expression<rstring> $localLocationID : getSubmissionTimeValue("localLocationID", "RCX") ;
+		expression<float64> $aggregationInterval :(float64) getSubmissionTimeValue("aggregationInterval", "1.0") ;
+		expression<rstring> $webContext : getSubmissionTimeValue("webContext", "NetflowViewer") ;
+		expression<int32>	$webPort :(int32) getSubmissionTimeValue("webPort", "6060") ;
+		expression<int32>	$socketPort :(int32) getSubmissionTimeValue("socketPort", "6061") ;
+		expression<rstring> $pcapFilename: getSubmissionTimeValue("pcapFilename", "/etc/sample_netflow9_new.pcap" );
+		expression<rstring> $url: getSubmissionTimeValue("url", "http://localhost:8080/InjectedTuples/ports/output/0/inject");
+		
+		
+
+	type
+		PacketType = 
+			float64 captureTime, // time that packet was captured, in seconds since Unix epoch
+			uint32 netflowSource, // IP source address of Netflow message
+			blob netflowMessage ; // the Netflow message from a packet, excluding all network headers
+			FlowType = uint32 srcAddress, // IPv4 address of source of flow
+			uint16 srcPort, // UDP/TCP port of source of flow
+			uint32 dstAddress, // IPv4 address of destination of flow
+			uint16 dstPort, // UDP/TCP port of destination of flow
+			uint8 flowProtocol, // IP protocol number of flow, usually 1 for "icmp", 6 for "tcp", or 17 for "udp"
+			float64 flowDuration, // duration of flow, in seconds
+			uint64 flowSize ; // size of flow, in bytes
+		
+		LocatedFlowType = 
+			rstring srcLocationID, 
+			boolean srcInternal, 
+			rstring srcCountry, 
+			rstring srcState, 
+			rstring srcCity, 
+			float64 srcLatitude,
+			float64 srcLongitude, 
+			rstring dstLocationID, 
+			boolean dstInternal, 
+			rstring dstCountry, 
+			rstring dstState, 
+			rstring dstCity,
+			float64 dstLatitude, 
+			float64 dstLongitude, 
+			uint8 flowProtocol, // IP protocol number of flow, usually 1 for "icmp", 6 for "tcp", or 17 for "udp"
+			float64 flowDuration, // duration of flow, in seconds
+			uint64 flowSize ; // size of flow, in bytes
+		
+		AggregatedLocationType = 
+			rstring country, // country, if known, or empty string if not
+			rstring stateprovince, // state or province, if known, or empty string if not
+			rstring city, // city, if known, or empty string if not
+			float64 srcLatitude, // latitude of this location
+			float64 srcLongitude, // latitude of this longitude
+			float64 dstLatitude, // latitude of this location
+			float64 dstLongitude, // latitude of this longitude
+			float64 flowDuration, // duration of longest flow to/from this location, in seconds.milliseconds
+			uint64 flowRate ; // sum of rates of flow to/from this location, in bytes per second
+
+
+	graph
+ 		
+	stream<rstring pcapFilename> getPcapFile = Beacon()
+	{
+		param
+			iterations : 5000000u ;
+			initDelay : 10.0;
+			period : 3.0;
+
+		output
+			getPcapFile : pcapFilename = getThisToolkitDir() + $pcapFilename;
+		
+		config
+			// Ensure the operators are in a single PE to have a single web-server
+			placement: partitionColocation("NetflowCollector");
+	}
+	
+	
+	() as PrintPcapFile = Custom(getPcapFile)
+	{
+		logic
+			onTuple getPcapFile : printStringLn("pcapFilename : " +(rstring) getPcapFile) ;
+			
+			config
+				// Ensure the operators are in a single PE to have a single web-server
+				placement: partitionColocation("NetflowCollector");
+	}
+
+	stream<PacketType> PacketStream as Out = PacketFileSource(getPcapFile) 
+	{
+		param
+			//pcapFilename: dataDirectory() + $pcapFilename;
+			inputFilter: "udp port 2055";
+			metricsInterval: 0.0;
+			
+			output Out:
+				captureTime = (float64)CAPTURE_SECONDS() + (float64)CAPTURE_MICROSECONDS() / 1000000.0,
+				netflowSource = IPV4_SRC_ADDRESS(),
+				netflowMessage = PAYLOAD_DATA();
+			config
+				// Ensure the operators are in a single PE to have a single web-server
+				placement: partitionColocation("NetflowCollector");
+	}
+ 
+
+	/**
+	 * PacketLiveSource is an operator for the IBM Streams product that captures live network 
+	 * packets from an ethernet interface, parses their network headers, and emits tuples 
+	 * containing packet data. The operator may be configured with one or more output ports, 
+	 * and each port may be configured to emit different tuples, as specified by output filters. 
+	 * The tuples may contain the entire packet, the payload portion of the packet, or 
+	 * individual fields from the network headers, as specified by output attribute assignments. 
+ 
+	stream<PacketType> PacketStream1 as Out = PacketLiveSource()
+	{
+		param
+			networkInterface : $networkInterface ;
+			
+			// This optional parameter metricsInterval takes an expression of type float64 that specifies the interval, in seconds, for sending operator metrics to the Streams runtime. If the value is zero or less, the operator 
+			// will not report metrics to the runtime, and the output assigment functions for libpcap statistics will be zero.
+			metricsInterval : 0.0 ;
+			
+			// This optional parameter inputFilter takes an expression of type rstring that specifies which input packets 
+			// should be processed. The value of this string must be a valid PCAP filter expression.
+			//	inputFilter : "udp port 2055" ;
+
+		output
+			Out :
+			// The function float64)CAPTURE_SECONDS() returns the number of microseconds since the value of the CAPTURE_SECONDS() function until the current packet was captured, according to the system clock on the machine that captured it.
+			// The function float64 CAPTURE_MICROSECONDS() returns the number of seconds since the beginning of the Unix epoch (midnight on January 1st, 1970 in Greenwich, England) until the current packet was captured, according to the system clock on the machine that captured it.
+			captureTime =(float64) CAPTURE_SECONDS() +(float64) CAPTURE_MICROSECONDS() / 1000000.0,
+
+			// The Native function uint32 IPV4_SRC_ADDRESS() returns the IP version 4 source address of the current packet, 
+			// if it has one, or zero otherwise.
+			netflowSource = IPV4_SRC_ADDRESS(),
+
+			// The Native function blob PAYLOAD_DATA() returns the payload data in the current packet, 
+			// excluding all network headers. Note that the data may have been truncated when the packet was captured.
+			netflowMessage = PAYLOAD_DATA() ;
+	}
+		
+
+	 
+	() as PacketSink = FileSink(PacketStream)
+	{
+		logic
+			onTuple PacketStream : printStringLn("PacketStream  : " +(rstring) PacketStream) ;
+		param
+			file : dataDirectory() + "/PacketStream.out" ;
+			format : txt ;
+			hasDelayField : true ;
+			flush : 1u ;
+	}
+	*/
+	
+	/** NetflowMessageParser is an operator for the IBM Streams product that parses individual 
+	 * fields of Netflow messages received in input tuples, and emits tuples containing message 
+	 * data. The operator may be configured with one or more output ports, and each port 
+	 * may be configured to emit different tuples, as specified by output filters. 
+	 * The tuples contain individual fields from the input message, as specified by 
+	 * output attribute assignments.	
+	*/
+	
+	stream<FlowType> FlowStream as Out = NetflowMessageParser(PacketStream)
+	{
+		param
+			messageAttribute : netflowMessage ;
+			sourceAttribute : netflowSource ;
+		output
+			Out :
+				// https://www.ibm.com/support/knowledgecenter/fi/SSCRJU_4.2.1/com.ibm.streams.toolkits.doc/spldoc/dita/tk$com.ibm.streamsx.network/ns$com.ibm.streamsx.network.parse.html
+				srcAddress = NETFLOW_IPV4_SRC_ADDR(), 
+				srcPort = NETFLOW_SRC_PORT(), 
+				dstAddress = NETFLOW_IPV4_DST_ADDR(), 
+				dstPort = NETFLOW_DST_PORT(),
+				flowProtocol = NETFLOW_PROTOCOL(), 
+				flowDuration = (float64)(NETFLOW_LAST_SWITCHED() - NETFLOW_FIRST_SWITCHED()) / 1000.0, 
+				flowSize = NETFLOW_IN_BYTES() ;
+		config
+			// Ensure the operators are in a single PE to have a single web-server
+			placement: partitionColocation("NetflowCollector");
+	}
+	
+	
+	
+	stream<rstring status, int32 stat, rstring contentEncoding, rstring contentType, list<rstring> responseHeader, rstring respData, rstring err, float64 starttime, int32 sequence, int32 blocksize> Response as O
+					= HTTPRequest(FlowStream as I) {
+		param
+			fixedUrl: $url;
+			fixedMethod: POST;
+			outputBody : "respData";
+			outputStatus : "status";
+			outputStatusCode : "stat";
+			outputContentEncoding : "contentEncoding";
+			outputContentType : "contentType";
+			outputHeader : "responseHeader";
+			errorDiagnostics : "err";
+			fixedContentType : "application/x-www-form-urlencoded";
+
+			requestAttributes : "srcAddress", "srcPort", "dstAddress", "dstPort", "flowProtocol" , "flowDuration" ,"flowSize";
+			sslAcceptAllCertificates: true;
+		config
+			// Ensure the operators are in a single PE to have a single web-server
+			placement: partitionColocation("NetflowCollector");
+	}
+
+
+	() as PrintResponse = Custom(Response)
+	{
+		logic
+			onTuple Response : printStringLn("Response : " +(rstring) Response) ;
+			
+			config
+				// Ensure the operators are in a single PE to have a single web-server
+				placement: partitionColocation("NetflowCollector");
+	}
+	
+	
+}

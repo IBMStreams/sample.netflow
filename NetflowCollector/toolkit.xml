@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no" ?>
+<toolkitModel xmlns="http://www.ibm.com/xmlns/prod/streams/spl/toolkit" productVersion="4.3.1.0" xmlns:common="http://www.ibm.com/xmlns/prod/streams/spl/common" xmlns:ti="http://www.ibm.com/xmlns/prod/streams/spl/toolkitInfo" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+
+  <toolkit name="NetflowCollector" requiredProductVersion="4.3.1.0" version="1.0.0">
+    <description/>
+    <uriTable>
+      <uri index="1" value="application/NetflowCollector.spl"/>
+    </uriTable>
+    <namespace name="application">
+      <compositeOp column="11" line="17" name="NetflowCollector" potentialMain="true" uriIndex="1">
+        <parameter defaultValue="getSubmissionTimeValue(&quot;networkInterface&quot;, &quot;eth0&quot;)" metaType="Expression" name="networkInterface" optional="true" type="&lt;rstring>"/>
+        <parameter defaultValue="getSubmissionTimeValue(&quot;localLocationID&quot;, &quot;RCX&quot;)" metaType="Expression" name="localLocationID" optional="true" type="&lt;rstring>"/>
+        <parameter defaultValue="(float64)getSubmissionTimeValue(&quot;aggregationInterval&quot;, &quot;1.0&quot;)" metaType="Expression" name="aggregationInterval" optional="true" type="&lt;float64>"/>
+        <parameter defaultValue="getSubmissionTimeValue(&quot;webContext&quot;, &quot;NetflowViewer&quot;)" metaType="Expression" name="webContext" optional="true" type="&lt;rstring>"/>
+        <parameter defaultValue="(int32)getSubmissionTimeValue(&quot;webPort&quot;, &quot;6060&quot;)" metaType="Expression" name="webPort" optional="true" type="&lt;int32>"/>
+        <parameter defaultValue="(int32)getSubmissionTimeValue(&quot;socketPort&quot;, &quot;6061&quot;)" metaType="Expression" name="socketPort" optional="true" type="&lt;int32>"/>
+        <parameter defaultValue="getSubmissionTimeValue(&quot;pcapFilename&quot;, &quot;/etc/sample_netflow9_new.pcap&quot;)" metaType="Expression" name="pcapFilename" optional="true" type="&lt;rstring>"/>
+        <parameter defaultValue="getSubmissionTimeValue(&quot;url&quot;, &quot;http://localhost:8080/InjectedTuples/ports/output/0/inject&quot;)" metaType="Expression" name="url" optional="true" type="&lt;rstring>"/>
+        <type column="3" line="32" name="PacketType" type="float64 captureTime, uint32 netflowSource, blob netflowMessage" uriIndex="1"/>
+        <type column="4" line="36" name="FlowType" type="uint32 srcAddress, uint16 srcPort, uint32 dstAddress, uint16 dstPort, uint8 flowProtocol, float64 flowDuration, uint64 flowSize" uriIndex="1"/>
+        <type column="3" line="44" name="LocatedFlowType" type="rstring srcLocationID, boolean srcInternal, rstring srcCountry, rstring srcState, rstring srcCity, float64 srcLatitude, float64 srcLongitude, rstring dstLocationID, boolean dstInternal, rstring dstCountry, rstring dstState, rstring dstCity, float64 dstLatitude, float64 dstLongitude, uint8 flowProtocol, float64 flowDuration, uint64 flowSize" uriIndex="1"/>
+        <type column="3" line="63" name="AggregatedLocationType" type="rstring country, rstring stateprovince, rstring city, float64 srcLatitude, float64 srcLongitude, float64 dstLatitude, float64 dstLongitude, float64 flowDuration, uint64 flowRate" uriIndex="1"/>
+      </compositeOp>
+    </namespace>
+    <dependency>
+      <common:name>com.ibm.streamsx.inet</common:name>
+      <common:version>3.1.0</common:version>
+    </dependency>
+    <dependency>
+      <common:name>com.ibm.streamsx.inetserver</common:name>
+      <common:version>4.3.2</common:version>
+    </dependency>
+    <dependency>
+      <common:name>com.ibm.streamsx.network</common:name>
+      <common:version>3.2.1</common:version>
+    </dependency>
+    <sabFiles>
+      <ti:include path="toolkit.xml" root="toolkitDir"/>
+      <ti:include path="impl/java/lib/**" root="toolkitDir"/>
+      <ti:include path="impl/java/bin/**" root="toolkitDir"/>
+      <ti:include path="impl/bin/**" root="toolkitDir"/>
+      <ti:include path="impl/lib/**" root="toolkitDir"/>
+      <ti:include path="impl/nl/*.dat" root="toolkitDir"/>
+      <ti:include path="etc/**" root="toolkitDir"/>
+      <ti:include path="lib/**" root="toolkitDir"/>
+      <ti:include path="nl/**" root="toolkitDir"/>
+      <ti:include path="opt/**" root="toolkitDir"/>
+    </sabFiles>
+  </toolkit>
+
+</toolkitModel>
