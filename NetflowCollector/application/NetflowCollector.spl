@@ -33,7 +33,8 @@ composite NetflowCollector
 			float64 captureTime, // time that packet was captured, in seconds since Unix epoch
 			uint32 netflowSource, // IP source address of Netflow message
 			blob netflowMessage ; // the Netflow message from a packet, excluding all network headers
-			FlowType = uint32 srcAddress, // IPv4 address of source of flow
+		
+		FlowType = uint32 srcAddress, // IPv4 address of source of flow
 			uint16 srcPort, // UDP/TCP port of source of flow
 			uint32 dstAddress, // IPv4 address of destination of flow
 			uint16 dstPort, // UDP/TCP port of destination of flow
