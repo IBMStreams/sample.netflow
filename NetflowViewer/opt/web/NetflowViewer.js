@@ -239,8 +239,7 @@ var OpenStreetMapLayer = L
 
 var NasaViirsCityLights2012Layer = L
 		.tileLayer(
-				'http://map1.vis.earthdata.nasa.gov/wmts-webmerc/MODIS_Terra_CorrectedReflectance_TrueColor/default/2015-06-07/GoogleMapsCompatible_Level9/{z}/{y}/{x}'
-		//		'http://map1.vis.earthdata.nasa.gov/wmts-webmerc/VIIRS_CityLights_2012/default//GoogleMapsCompatible_Level8/{z}/{y}/{x}.jpg',
+				'http://map1.vis.earthdata.nasa.gov/wmts-webmerc/VIIRS_CityLights_2012/default//GoogleMapsCompatible_Level8/{z}/{y}/{x}.jpg',
 				{
 					attribution : 'imagery &copy; <a href="https://earthdata.nasa.gov">NASA</a>',
 					maxZoom : 8
