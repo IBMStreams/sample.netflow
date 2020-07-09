@@ -25,9 +25,10 @@ composite NetflowCollector
 		expression<int32>	$webPort :(int32) getSubmissionTimeValue("webPort", "6060") ;
 		expression<int32>	$socketPort :(int32) getSubmissionTimeValue("socketPort", "6061") ;
 		expression<rstring> $pcapFilename: getSubmissionTimeValue("pcapFilename", "/etc/sample_netflow9_new.pcap" );
-		expression<rstring> $url: getSubmissionTimeValue("url", "http://sbln7.ibm.com:6060/InjectedTuples/ports/output/0/inject");
+		expression<rstring> $url: getSubmissionTimeValue("url", "http://sbln7.ibm.com:6060/InjectedTuples/ports/output/0/inject") ;
+		expression<boolean> $runOnce: (boolean)getSubmissionTimeValue("runOnce", "false") ; //for debugging purposes run only one pcap file
 		
-		
+		expression<int32> $transmissionBurstTupleCount: 500;
 
 	type
 		PacketType = 
@@ -70,7 +71,6 @@ composite NetflowCollector
 	stream<rstring pcapFilename> PcapFileStream as O = Beacon()
 	{
 		param
-			//iterations : 5000000u ;
 			initDelay : 10.0;
 			period : 3.0;
 
@@ -85,13 +85,16 @@ composite NetflowCollector
 	
 	stream<I> PcapFileStream2 as O = Custom(PcapFileStream as I) {
 		logic
-			state : mutable int32 i = 0;
+			state : {
+				boolean runOnce = $runOnce;
+				mutable boolean done = false;
+			}
 			onTuple I : {
-				if ( i == 0) {
+				if ( ( ! runOnce ) || ( ! done )) {
 					printStringLn("pcapFilename : " +(rstring) pcapFilename) ;
 					submit(I, O);
+					done = true;
 				}
-				++i;
 			}
 			
 			config
@@ -114,7 +117,6 @@ composite NetflowCollector
 				// Ensure the operators are in a single PE to have a single web-server
 				placement: partitionColocation("NetflowCollector");
 	}
- 
 
 	/**
 	 * PacketLiveSource is an operator for the IBM Streams product that captures live network 
@@ -208,14 +210,22 @@ composite NetflowCollector
 			placement: partitionColocation("NetflowCollector");
 	}
 	
-	/* build a list tuple for each window */
+	/* build a list tuple for each window; limit size to $transmissionBurstTupleCount */
 	stream<list<FlowType> windowContent> AggregateStream2 as O = Custom(AggregateStream as I) {
 		logic
 			state : mutable list<FlowType> theList = [];
-			onTuple I : appendM(theList, I);
+			onTuple I : {
+				appendM(theList, I);
+				if (size(theList) >= $transmissionBurstTupleCount) {
+					submit({windowContent=theList}, O);
+					clearM(theList);
+				}
+			}
 			onPunct I : {
-				submit({windowContent=theList}, O);
-				clearM(theList);
+				if (size(theList) > 0) {
+					submit({windowContent=theList}, O);
+					clearM(theList);
+				}
 			}
 		config
 			// Ensure the operators are in a single PE to have a single web-server
