@@ -201,7 +201,8 @@ composite NetflowCollector
 		window
 			I: tumbling, time($aggretationTime);
 		param
-			groupBy: srcAddress, srcPort, dstAddress, dstPort, flowProtocol;
+			//groupBy: srcAddress, srcPort, dstAddress, dstPort, flowProtocol;
+			groupBy: srcAddress, dstAddress;
 		output
 			O : flowDuration = Sum(flowDuration),
 				flowSize = Sum(flowSize);
