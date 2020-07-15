@@ -150,7 +150,8 @@ composite NetflowViewer
 				dstLongitude	= locationLongitude(dstAddress) ;
 		config
 			// Ensure the operators are in a single PE to have a single web-server
-			placement: partitionColocation("NetflowViewer");
+			//placement: partitionColocation("NetflowViewer");
+			placement: partitionIsolation;
 	}
 	/* 	 
 	() as LocatedFlowSink = FileSink(LocatedFlowStream)
@@ -241,9 +242,7 @@ composite NetflowViewer
 			placement: partitionColocation("NetflowViewer");
 	}
 
-	/* 
-	
-	() as AggregatedLocationSink = FileSink(AggregatedLocationStream)
+	/* () as AggregatedLocationSink = FileSink(AggregatedLocationStream)
 	{
 		logic
 			onTuple AggregatedLocationStream : printStringLn("AggregatedLocationStream : " +(rstring) AggregatedLocationStream) ;
@@ -254,9 +253,21 @@ composite NetflowViewer
 			hasDelayField : false ;
 			writePunctuations : true ;
 			flush : 1u ;
+	} */
+	
+	/*
+	 * Provide a raw vew of the location stream
+	 */
+	() as LocationStreamView = HTTPTupleView(AggregatedLocationStream as I) {
+		window
+			I : sliding, count(50), count(1);
+		param
+			port : $webPort ;
+		config
+			// Ensure the operators are in a single PE to have a single web-server
+			placement: partitionColocation("NetflowViewer");
 	}
 	
-	*/
 	/** 
 	 * WebSocketSend Operator transmits tuples received on the input port via WebSocket protocol to 
 	 * connected clients. Upon startup, this operator is registered to the common pe-wide 
@@ -289,5 +300,7 @@ composite NetflowViewer
 			// Ensure the operators are in a single PE to have a single web-server
 			placement: partitionColocation("NetflowViewer");
 	}
-		
+
+	config
+		restartable: false;
 }
