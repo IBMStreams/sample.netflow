@@ -37,6 +37,7 @@ composite NetflowCollector
 			blob netflowMessage ; // the Netflow message from a packet, excluding all network headers
 		
 		FlowType = 
+			uint32 time_stamp, 
 			uint32 srcAddress, // IPv4 address of source of flow
 			uint16 srcPort, // UDP/TCP port of source of flow
 			uint32 dstAddress, // IPv4 address of destination of flow
@@ -184,6 +185,9 @@ composite NetflowCollector
 		output
 			Out :
 				// https://www.ibm.com/support/knowledgecenter/fi/SSCRJU_4.2.1/com.ibm.streams.toolkits.doc/spldoc/dita/tk$com.ibm.streamsx.network/ns$com.ibm.streamsx.network.parse.html
+//				time_stamp		= NETFLOW_FIRST_SWITCHED(),
+//				time_stamp		= NETFLOW_SYSTEM_UPTIME(), 
+				time_stamp		= NETFLOW_UNIX_SECONDS(), // returns the time that the current message was sent, in seconds
 				srcAddress 		= NETFLOW_IPV4_SRC_ADDR(), 
 				srcPort 		= NETFLOW_SRC_PORT(), 
 				dstAddress 		= NETFLOW_IPV4_DST_ADDR(), 

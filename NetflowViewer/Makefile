@@ -1,6 +1,6 @@
 .PHONY: all distributed clean 
 
-TOOLKITS_PATH = $(STREAMS_INSTALL)/toolkits/com.ibm.streamsx.network:$(STREAMS_INSTALL)/toolkits/com.ibm.streamsx.inetserver:$(STREAMS_INSTALL)/toolkits/com.ibm.streamsx.inet
+TOOLKITS_PATH = $(STREAMS_INSTALL)/toolkits/com.ibm.streamsx.network:$(STREAMS_INSTALL)/toolkits/com.ibm.streamsx.inetserver:$(STREAMS_INSTALL)/toolkits/com.ibm.streamsx.inet:$(STREAMS_INSTALL)/toolkits/com.ibm.streamsx.jdbc
 
 
 SPLC_FLAGS ?= -a
