@@ -85,7 +85,7 @@ composite NetflowViewer
 
 	graph
  
- 	
+	
 	
 	stream<rstring windowContent> InjectedTuples = HTTPTupleInjection() {
 		param
@@ -96,6 +96,7 @@ composite NetflowViewer
 	}
 	
 	/* revert the sender transformation : convert to tuple list*/
+	@catch(exception=streams, tupleTrace=true, stackTrace=false)
 	stream<list<FlowType> windowContent> InjectedTuples2 as O = Custom(InjectedTuples as I) {
 		logic onTuple I : submit({windowContent=(list<FlowType>)I.windowContent}, O);
 		config
@@ -118,16 +119,16 @@ composite NetflowViewer
 	}
 	
 	/** 
-	 * builds a time stamp string in format YYYY-MM-DD hh:mm:ss
-	 * creates insert SQL statement
-	 */
+	* builds a time stamp string in format YYYY-MM-DD hh:mm:ss
+	* creates insert SQL statement
+	*/
 	stream<rstring sql> createSqlStatement as O = Custom(InjectedTuples3 as I)
 	{
 		logic 
 			onTuple I: 
 			{
 				mutable timestamp ts = createTimestamp((int64)time_stamp, 0u);
- 				// build time stamp string in the format YYYY-MM-DD hh:mm:ss
+				// build time stamp string in the format YYYY-MM-DD hh:mm:ss
 				mutable rstring formatedTimeStamp = "'" 
 					+ (rstring) year(ts) + "-" 
 					+ ((month(ts) < 9u) ? "0" : "") +(rstring)(month(ts) + 1u) + "-"
@@ -144,22 +145,22 @@ composite NetflowViewer
 	}
 	
 	stream<FlowType> insertIntoDB as O = JDBCRun(createSqlStatement as I)
-    {
+	{
 	//	logic 
 	//		onTuple I: printStringLn("insertIntoDB  : " +(rstring) I) ;
 	
-		 param
-			jdbcDriverLib 	: $jdbcDriverLib ;
-			jdbcClassName 	: $jdbcClassName ;
-			jdbcUrl 		: $jdbcUrl ;
-			jdbcUser 		: $jdbcUser ;
-			jdbcPassword 	: $jdbcPassword ;
-			statementAttr 	: sql;
+		param
+			jdbcDriverLib	: $jdbcDriverLib ;
+			jdbcClassName	: $jdbcClassName ;
+			jdbcUrl		: $jdbcUrl ;
+			jdbcUser		: $jdbcUser ;
+			jdbcPassword	: $jdbcPassword ;
+			statementAttr	: sql;
 
 		config
 			// Ensure the operators are in a single PE to have a single web-server
 			placement: partitionColocation("NetflowViewer");
-    }
+	}
 	
 
 	/* debug */
@@ -174,15 +175,15 @@ composite NetflowViewer
 	}
 
 	/**
-	 * IPAddressLocation is an operator for the IBM Streams product that finds the geographical location of 
-	 * IP addresses received in input tuples, based on the subnets they are part of, and emits output tuples containing the country, 
-	 * state or province, city, latitude, and longitude of the subnets. The operator may be configured with one or more output ports, 
-	 * and each port may be configured to emit different tuples, as specified by output filters.
+	* IPAddressLocation is an operator for the IBM Streams product that finds the geographical location of 
+	* IP addresses received in input tuples, based on the subnets they are part of, and emits output tuples containing the country, 
+	* state or province, city, latitude, and longitude of the subnets. The operator may be configured with one or more output ports, 
+	* and each port may be configured to emit different tuples, as specified by output filters.
 		* The IPAddressLocation operator consumes input tuples containing IP version 
-	 * 4 and 6 addresses, selects messages to emit as output tuples with filter expressions, and assigns values to them with 
-	 * output attribute assignment expressions. Output filters and attribute assignments are SPL expressions. They may use any of the built-in SPL functions, and any of these functions, which are specific to the IPAddressLocation operator: 
-	 * 
-	 */
+	* 4 and 6 addresses, selects messages to emit as output tuples with filter expressions, and assigns values to them with 
+	* output attribute assignment expressions. Output filters and attribute assignments are SPL expressions. They may use any of the built-in SPL functions, and any of these functions, which are specific to the IPAddressLocation operator: 
+	* 
+	*/
 	stream<LocatedFlowType> LocatedFlowStream as Out = IPAddressLocation(InjectedTuples4)
 	{
 		param
@@ -192,7 +193,7 @@ composite NetflowViewer
 		output
 			Out : 
 				srcLocationID	= locationID(srcAddress), 
-				srcInternal 	= locationID(srcAddress) == $localLocationID, 
+				srcInternal	= locationID(srcAddress) == $localLocationID, 
 				srcCountry		= locationCountryName(srcAddress), 
 				srcState		= locationSubdivision1Name(srcAddress), 
 				srcCity			= locationCityName(srcAddress),
@@ -210,7 +211,7 @@ composite NetflowViewer
 			//placement: partitionColocation("NetflowViewer");
 			placement: partitionIsolation;
 	}
-	/* 	 
+	/*	
 	() as LocatedFlowSink = FileSink(LocatedFlowStream)
 	{
 		param
@@ -219,7 +220,7 @@ composite NetflowViewer
 			hasDelayField : true ;
 			flush : 1u ;
 	}
-*/	
+	*/	
 	
 	stream<int32 i> AggregateIntervalStream = Beacon()
 	{
@@ -229,6 +230,8 @@ composite NetflowViewer
 			// Ensure the operators are in a single PE to have a single web-server
 			placement: partitionColocation("NetflowViewer");
 	}
+	
+	
 	stream<AggregatedLocationType> AggregatedLocationStream as Out = Custom(LocatedFlowStream as InFlows ; AggregateIntervalStream as
 		InInterval)
 	{
@@ -260,7 +263,7 @@ composite NetflowViewer
 				}
 				
 				
-				if 	(validCoordinates)
+				if	(validCoordinates)
 				{		
 			
 					if(! srcInternal)
@@ -313,8 +316,8 @@ composite NetflowViewer
 	} */
 	
 	/*
-	 * Provide a raw vew of the location stream
-	 */
+	* Provide a raw view of the location stream
+	*/
 	() as LocationStreamView = HTTPTupleView(AggregatedLocationStream as I) {
 		window
 			I : sliding, count(50), count(1);
@@ -326,13 +329,13 @@ composite NetflowViewer
 	}
 	
 	/** 
-	 * WebSocketSend Operator transmits tuples received on the input port via WebSocket protocol to 
-	 * connected clients. Upon startup, this operator is registered to the common pe-wide 
-	 * jetty web server. Clients may connect to the websocket context under 
-	 * /input/0/wssend. As tuple arrives on the input port a message is triggered and 
-	 * transmitted to all currently connected clients. 
-	 * Clients can connect and disconnect at any time. 
-	 */
+	* WebSocketSend Operator transmits tuples received on the input port via WebSocket protocol to 
+	* connected clients. Upon startup, this operator is registered to the common pe-wide 
+	* jetty web server. Clients may connect to the websocket context under 
+	* /input/0/wssend. As tuple arrives on the input port a message is triggered and 
+	* transmitted to all currently connected clients. 
+	* Clients can connect and disconnect at any time. 
+	*/
 	() as LocationStreamSocket = WebSocketSend(AggregatedLocationStream)
 	{
 		param
@@ -343,10 +346,10 @@ composite NetflowViewer
 	}
 
 	/**
-	 * WebContext embeds a Jetty web server to provide HTTP or HTTPS REST access to files defined 
-	 * by the context and contextResourceBase parameters. Limitations:
-	 * default no security access is provided to the data, HTTPS must be explicitly configured.
-	 */
+	* WebContext embeds a Jetty web server to provide HTTP or HTTPS REST access to files defined 
+	* by the context and contextResourceBase parameters. Limitations:
+	* default no security access is provided to the data, HTTPS must be explicitly configured.
+	*/
 	() as WebContent = WebContext()
 	{
 		param
