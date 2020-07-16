@@ -96,7 +96,7 @@ composite NetflowViewer
 	}
 	
 	/* revert the sender transformation : convert to tuple list*/
-	@catch(exception=streams, tupleTrace=true, stackTrace=false)
+	@catch(exception=streams, tupleTrace=true, stackTrace=false) 
 	stream<list<FlowType> windowContent> InjectedTuples2 as O = Custom(InjectedTuples as I) {
 		logic onTuple I : submit({windowContent=(list<FlowType>)I.windowContent}, O);
 		config
