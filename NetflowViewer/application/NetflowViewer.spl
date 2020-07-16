@@ -14,6 +14,7 @@ use com.ibm.streamsx.inet.wsserver::* ;
 use com.ibm.streamsx.jdbc::* ;
 use com.ibm.streamsx.jdbc.types::* ;
 
+
 composite NetflowViewer
 {
 	param
@@ -116,35 +117,44 @@ composite NetflowViewer
 			placement: partitionColocation("NetflowViewer");
 	}
 	
-	
+	/** 
+	 * builds a time stamp string in format YYYY-MM-DD hh:mm:ss
+	 * creates insert SQL statement
+	 */
 	stream<rstring sql> createSqlStatement as O = Custom(InjectedTuples3 as I)
 	{
 		logic 
 			onTuple I: 
 			{
-				submit({sql= "INSERT INTO NETFLOW (TIME_STAMP, SRCADDRESS, SRCPORT, DSTADDRESS, DSTPORT, FLOWPROTOCOL, FLOWDURATION, FLOWSIZE) VALUES (" 
-				+ (rstring) time_stamp + ", " + (rstring)srcAddress + ", " + (rstring)srcPort + ", " + (rstring)dstAddress + ", " 
-				+ (rstring)dstPort + ", " + (rstring)flowProtocol + ", " + (rstring)flowDuration + ", " + (rstring)flowSize + ")" } , O);
+				mutable timestamp ts = createTimestamp((int64)time_stamp, 0u);
+ 				// build time stamp string in the format YYYY-MM-DD hh:mm:ss
+				mutable rstring formatedTimeStamp = "'" 
+					+ (rstring) year(ts) + "-" 
+					+ ((month(ts) < 9u) ? "0" : "") +(rstring)(month(ts) + 1u) + "-"
+					+ ((day(ts) < 10u) ? "0" : "") + (rstring) day(ts) + " " 
+					+ ((hour(ts) < 10u) ? "0" : "") +(rstring) hour(ts) + ":"
+					+ ((minute(ts) < 10u) ? "0" : "") +(rstring) minute(ts) + ":" 
+					+ ((second(ts) < 10u) ? "0" : "") +(rstring) second(ts) + "'";
+					
+				submit({sql= "INSERT INTO NETFLOW (TIME_STAMP, SRCADDRESS, SRCPORT, DSTADDRESS, DSTPORT, FLOWPROTOCOL, FLOWDURATION, FLOWSIZE) "
+							+ " VALUES (" + formatedTimeStamp + ", " + (rstring)srcAddress + ", " + (rstring)srcPort 
+							+ ", " + (rstring)dstAddress + ", " + (rstring)dstPort + ", " + (rstring)flowProtocol 
+							+ ", " + (rstring)flowDuration + ", " + (rstring)flowSize + ")" } , O);
 			}
 	}
 	
 	stream<FlowType> insertIntoDB as O = JDBCRun(createSqlStatement as I)
     {
-		//	logic 
-		//		onTuple I: 
-		//			printStringLn("insertIntoDB  : " +(rstring) I) ;
+	//	logic 
+	//		onTuple I: printStringLn("insertIntoDB  : " +(rstring) I) ;
 	
 		 param
-			jdbcDriverLib : $jdbcDriverLib ;
-			jdbcClassName : $jdbcClassName ;
-			jdbcUrl : $jdbcUrl ;
-			jdbcUser : $jdbcUser ;
-			jdbcPassword : $jdbcPassword ;
-			statementAttr : sql;
-//			statement : "INSERT INTO NETFLOW (TIME_STAMP, SRCADDRESS, SRCPORT, DSTADDRESS, DSTPORT, FLOWPROTOCOL, FLOWDURATION, FLOWSIZE) VALUES (?, ?, ?, ?, ?, ?, ?, ?)" ;
-//			statementParamAttrs : "time_stamp, srcAddress, srcPort, dstAddress, dstPort, flowProtocol, flowDuration, flowSize" ;
-//			batchSize : 20;
-
+			jdbcDriverLib 	: $jdbcDriverLib ;
+			jdbcClassName 	: $jdbcClassName ;
+			jdbcUrl 		: $jdbcUrl ;
+			jdbcUser 		: $jdbcUser ;
+			jdbcPassword 	: $jdbcPassword ;
+			statementAttr 	: sql;
 
 		config
 			// Ensure the operators are in a single PE to have a single web-server
