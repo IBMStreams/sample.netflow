@@ -165,7 +165,7 @@ composite NetflowViewer
 	/* debug */
 	stream<I> InjectedTuples4 as O = Custom(InjectedTuples3 as I) {
 		logic onTuple I: {
-			printStringLn("InjectedTuples : " +(rstring) I) ;
+			//printStringLn("InjectedTuples : " +(rstring) I) ;
 			submit(I, O);
 		}
 		config
