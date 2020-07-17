@@ -23,8 +23,7 @@ composite NetflowViewer
 		expression<rstring> $localLocationID : getSubmissionTimeValue("localLocationID", "RCX") ;
 		expression<float64> $aggregationInterval :(float64) getSubmissionTimeValue("aggregationInterval", "1.0") ;
 		expression<rstring> $webContext : getSubmissionTimeValue("webContext", "NetflowViewer") ;
-		expression<int32>	$webPort :(int32) getSubmissionTimeValue("webPort", "6060") ;
-		expression<int32>	$socketPort :(int32) getSubmissionTimeValue("socketPort", "6061") ;
+		expression<int32>	$webserverPort :(int32) getSubmissionTimeValue("webserverPort", "6060") ;
 		expression<rstring> $pcapFilename: getSubmissionTimeValue("pcapFilename", "/etc/sample_netflow9_new.pcap" );
 		
 		expression<rstring> $jdbcDriverLib : "opt/db2jcc4.jar" ;
@@ -89,7 +88,7 @@ composite NetflowViewer
 	
 	stream<rstring windowContent> InjectedTuples = HTTPTupleInjection() {
 		param
-			port: $webPort;
+			port: $webserverPort;
 		config
 			// Ensure the operators are in a single PE to have a single web-server
 			placement: partitionColocation("NetflowViewer");
@@ -208,8 +207,7 @@ composite NetflowViewer
 				dstLongitude	= locationLongitude(dstAddress) ;
 		config
 			// Ensure the operators are in a single PE to have a single web-server
-			//placement: partitionColocation("NetflowViewer");
-			placement: partitionIsolation;
+			placement: partitionColocation("NetflowViewer");
 	}
 	/*	
 	() as LocatedFlowSink = FileSink(LocatedFlowStream)
@@ -322,7 +320,7 @@ composite NetflowViewer
 		window
 			I : sliding, count(50), count(1);
 		param
-			port : $webPort ;
+			port : $webserverPort ;
 		config
 			// Ensure the operators are in a single PE to have a single web-server
 			placement: partitionColocation("NetflowViewer");
@@ -339,7 +337,7 @@ composite NetflowViewer
 	() as LocationStreamSocket = WebSocketSend(AggregatedLocationStream)
 	{
 		param
-			port : $socketPort ;
+			port : $webserverPort ;
 		config
 			// Ensure the operators are in a single PE to have a single web-server
 			placement: partitionColocation("NetflowViewer");
@@ -353,7 +351,7 @@ composite NetflowViewer
 	() as WebContent = WebContext()
 	{
 		param
-			port : $webPort ;
+			port : $webserverPort ;
 			context : $webContext ;
 			contextResourceBase : getThisToolkitDir() + "/opt/web";
 		config

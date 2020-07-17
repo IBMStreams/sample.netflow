@@ -1,6 +1,6 @@
 // ------------------------- global constants  -----------------
 
-var socketPort = Number(location.port) + 1; // port for data stream's WebSocket
+var socketPort = Number(location.port); // port for data stream's WebSocket
 var socketRetryTime = 1000; // how often to try connecting to a WebSocket, in milliseconds 
 
 var connectedImage = "images/greenCheck.png"; // image to display for connected streams
