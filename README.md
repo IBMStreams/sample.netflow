@@ -13,14 +13,14 @@ The Netflow Sample is a is simple out of the box running demonstration for an ap
 
 ### NetflowCollector
 
-* The `NetflowCollector` collects the Netflow data from the Edge devices, makes the first data aggregation and transmits the data to `NetflowViewer`
-* The connection from `NetflowCollector` to `NetflowViewer` is currently a HTTP Post and requires the Endpoint-Monitor application on CP4D,
+* The `NetflowCollector` collects the Netflow data from the Edge devices, makes the first data aggregation and transmits the data to `NetflowViewer`.
+* The connection from `NetflowCollector` to `NetflowViewer` is currently a HTTP Post and requires the Endpoint-Monitor application in Cloud Pak for Data.
 
 ### NetflowViewer
 
 * The `NetflowViewer` translates the IP addresses into location data, makes the final data aggregation and provides the “Views” for a Web-Browser.
 * The `NetflowViewer` provides a raw data view, the Location Stream View and the Netflow View.
-* Due to connection limitations (no websocket connections), the Netflow View is currently not available in CP4D
+* Due to connection limitations (no websocket connections), the Netflow View is currently not available in Cloud Pak for Data.
 
 ## Netflow Demo
 
@@ -30,8 +30,8 @@ The Netflow Demo is a demonstration for an application that collects network sta
 
 * The `NetflowStoreCollector` collects the Netflow data from the router and makes the data aggregation and transmits the data to `NetflowStore`.
 * One or more  `NetflowStoreCollector` job are located in every datacenter.
-* The connection from `NetflowStoreCollector` to `NetflowStore` is currently a HTTP Post and requires the Endpoint-Monitor application on CP4D,
-* The application logic is able to compensate network outages up to a certain amount of time
+* The connection from `NetflowStoreCollector` to `NetflowStore` is currently a HTTP Post and requires the Endpoint-Monitor application on Cloud Pak for Data.
+* The application logic is able to compensate network outages up to a certain amount of time.
 
 ### NetflowStore
 
@@ -76,18 +76,18 @@ Submit the `NetflowCollector` job and provide the url of your `NetflowViewer` jo
 
 The url of the `NetflowCollector` is:
 
-* OnPrem http://\<hostname\>:\<webserver port\>/InjectedTuples/ports/output/0/inject
-* CP4D   https://\<exposed route of streams-endpoint-monitor\>/\<job name\>/InjectedTuples/ports/output/0/inject
+* OnPrem              http://\<hostname\>:\<webserver port\>/InjectedTuples/ports/output/0/inject
+* Cloud Pak for Data  https://\<exposed route of streams-endpoint-monitor\>/\<job name\>/InjectedTuples/ports/output/0/inject
 
 If the `NetflowCollector` job has no job name you must substitute \<job name\> with streams/jobs/\<jobid\>
 
 To view the Location Stream View open with your browser the url:
 
-* OnPrem http://\<hostname\>:\<webserver port\>/LocationStreamView/ports/input/0/tuples
-* CP4D   https://\<exposed route of streams-endpoint-monitor\>/\<job name\>/LocationStreamView/ports/input/0/tuples
+* OnPrem             http://\<hostname\>:\<webserver port\>/LocationStreamView/ports/input/0/tuples
+* Cloud Pak for Data https://\<exposed route of streams-endpoint-monitor\>/\<job name\>/LocationStreamView/ports/input/0/tuples
 
 To view the Netflow visualization open with your browser the url:
 
-* OnPrem http://\<hostname\>:\<webserver port\>/NetflowViewer
-* CP4D   not available
+* OnPrem             http://\<hostname\>:\<webserver port\>/NetflowViewer
+* Cloud Pak for Data not available
 
