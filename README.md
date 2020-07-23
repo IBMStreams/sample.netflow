@@ -64,6 +64,9 @@ Import all existing projects to your workspace.
 Make sure that all required toolkits are listed in *Streams Explorer*
 Right click the project and select `Build`
 
+### Build with VsCode
+
+tbd
 
 ## Use the Netflow Sample
 
