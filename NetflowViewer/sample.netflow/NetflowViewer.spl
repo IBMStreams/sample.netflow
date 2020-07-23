@@ -77,16 +77,14 @@ composite NetflowViewer {
 			param
 				port: $webserverPort;
 			config
-				// Ensure the operators are in a single PE to have a single web-server
 				placement: partitionColocation("NetflowViewer");
 		}
 
 		/* revert the sender transformation : convert to string*/
-		@catch(exception=streams, tupleTrace=true, stackTrace=false) 
+		@catch(exception=all, tupleTrace=true, stackTrace=false) 
 		stream<list<FlowType> windowContent> InjectedTuples2 as O = Custom(InjectedTuples as I) {
 			logic onTuple I : submit({windowContent=(list<FlowType>)I.windowContent}, O);
 			config
-				// Ensure the operators are in a single PE to have a single web-server
 				placement: partitionColocation("NetflowViewer");
 		}
 
@@ -100,7 +98,6 @@ composite NetflowViewer {
 				}
 			}
 			config
-				// Ensure the operators are in a single PE to have a single web-server
 				placement: partitionColocation("NetflowViewer");
 		}
 
@@ -111,7 +108,6 @@ composite NetflowViewer {
 				submit(I, O);
 			}
 			config
-				// Ensure the operators are in a single PE to have a single web-server
 				placement: partitionColocation("NetflowViewer");
 		}
 
@@ -146,7 +142,6 @@ composite NetflowViewer {
 					dstLatitude		= locationLatitude(dstAddress),
 					dstLongitude	= locationLongitude(dstAddress) ;
 			config
-				// Ensure the operators are in a single PE to have a single web-server
 				placement: partitionColocation("NetflowViewer");
 		}
 
@@ -155,7 +150,6 @@ composite NetflowViewer {
 			param
 				period : $aggregationInterval ;
 			config
-				// Ensure the operators are in a single PE to have a single web-server
 				placement: partitionColocation("NetflowViewer");
 		}
 
@@ -218,7 +212,6 @@ composite NetflowViewer {
 						clearM(aggregatedLocations) ;
 				}
 			config
-				// Ensure the operators are in a single PE to have a single web-server
 				placement: partitionColocation("NetflowViewer");
 		}
 
@@ -231,7 +224,6 @@ composite NetflowViewer {
 			param
 				port : $webserverPort ;
 			config
-				// Ensure the operators are in a single PE to have a single web-server
 				placement: partitionColocation("NetflowViewer");
 		}
 	
@@ -247,7 +239,6 @@ composite NetflowViewer {
 			param
 				port : $webserverPort ;
 			config
-				// Ensure the operators are in a single PE to have a single web-server
 				placement: partitionColocation("NetflowViewer");
 		}
 
@@ -262,7 +253,6 @@ composite NetflowViewer {
 				context : $webContext ;
 				contextResourceBase : getThisToolkitDir() + "/opt/web";
 			config
-				// Ensure the operators are in a single PE to have a single web-server
 				placement: partitionColocation("NetflowViewer");
 		}
 
