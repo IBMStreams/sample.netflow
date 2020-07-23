@@ -11,11 +11,6 @@
       <common:name>com.ibm.streamsx.inet</common:name>
       <common:version>3.1.0</common:version>
     </info:toolkit>
-
-    <info:toolkit>
-      <common:name>com.ibm.streamsx.inetserver</common:name>
-      <common:version>4.3.2</common:version>
-    </info:toolkit>
     <info:toolkit>
       <common:name>com.ibm.streamsx.network</common:name>
       <common:version>3.2.1</common:version>
