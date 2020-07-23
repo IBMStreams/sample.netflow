@@ -1,0 +1,176 @@
+
+
+/******************* styles for page body ************************************/
+
+body {
+    font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+    font-size: 80%;
+}
+
+p {
+    margin-top: 0;
+    margin-bottom: 0;
+}
+
+a {
+    text-decoration: none;
+}
+
+/***************** styles for the map *********************/
+
+#map {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+}
+
+.location-label {
+    font-weight: normal;
+    border-style: none;
+    border-color: rgba(0,0,0,0);
+    background: rgba(0,0,0,0);
+}
+
+.location-label-blue {
+    font-weight: normal;
+    color: blue;
+    padding: 0;
+    margin: 0;
+    border-style: none;
+    border-color: rgba(0,0,0,0);
+    background: rgba(0,0,0,0);
+}
+
+.location-label-green {
+    font-weight: normal;
+    color: green;
+    padding: 0;
+    margin: 0;
+    border-style: none;
+    border-color: rgba(0,0,0,0);
+    background: rgba(0,0,0,0);
+}
+
+.location-label-gray {
+    font-weight: normal;
+    color: gray;
+    border-style: none;
+    border-color: rgba(0,0,0,0);
+    background: rgba(0,0,0,0);
+}
+
+/******************* styles for title overlay above the map ************************************/
+
+div#titleOverlay {
+    position: absolute;
+    top: 0;
+    width: 100%;
+    text-align: center;
+}
+
+div#titleOverlay p {
+    font-size: 200%;
+    font-weight: bold;
+    color: blue;
+}
+
+div #titleOverlay img {
+    height: 15px;
+    width: auto;
+    vertical-align: center;
+}
+
+/***************** styles for the 'focus' buttons below the map *********************/
+
+div#focusOverlay {
+    position: absolute;
+    bottom: 0;
+    margin: 3px;
+}
+
+div#focusOverlay input[type="submit"]:hover {
+    border: 2px solid blue;
+    color: blue;
+}
+
+div#focusOverlay input.focusButton {
+    cursor: pointer; 
+    background-color: white      ;
+    border: 2px solid #77bbbb;
+    text-decoration: none;
+    color: #77bbbb;
+    font-weight: bold;
+}
+
+div#focusOverlay img {
+    height: 22px;
+    width: auto;
+    vertical-align: bottom;
+}
+
+/***************** styles for the 'credits' links below the map *********************/
+
+div#credits a {
+    color: #77bbbb;
+    font-weight: bold;
+}
+
+div#credits a:hover {
+    color: blue;
+}
+
+/***************** styles for the information overlay *********************/
+
+.informationOverlayHidden { 
+    display: none;
+}
+
+.informationOverlayVisible {
+    display: block;
+    position: absolute;
+    border-style: solid;
+    border-width: 5px;
+    border-color: blue;
+    top: 2%;
+    left: 5%;
+    cursor: pointer;
+    background-color: white;
+    padding: 10px;
+    box-shadow: 10px 10px 10px rgba(128, 128, 128, 0.5);
+}
+
+.informationOverlayPrompt {
+    font-style: italic;
+    color: blue;
+    text-align: right;
+}
+
+/***************** styles for the credits overlay *********************/
+
+.creditsOverlayHidden { 
+    display: none;
+}
+
+.creditsOverlayVisible {
+    display: block;
+    position: absolute;
+    border-style: solid;
+    border-width: 5px;
+    border-color: blue;
+    bottom:10%;
+    right: 5%;
+    cursor: pointer;
+    background-color: white;
+    padding: 10px;
+    box-shadow: 10px 10px 10px rgba(128, 128, 128, 0.5);
+}
+
+.creditsOverlayPrompt {
+    font-style: italic;
+    color: blue;
+    text-align: right;
+}
+
+/***********************************************************************************/
