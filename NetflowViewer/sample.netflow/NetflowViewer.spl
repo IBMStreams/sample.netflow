@@ -1,0 +1,271 @@
+
+/*
+** Copyright (C) 2015, 2020 International Business Machines Corporation
+** All Rights Reserved
+*/
+namespace sample.netflow;
+
+use com.ibm.streamsx.network.location::* ;
+use com.ibm.streamsx.inet.rest::* ;
+use com.ibm.streamsx.inet.wsserver::* ;
+
+/*
+ * To see the netflow Data open:
+ * http://<your host>/NetflowViewer/
+ * 
+ * To see the raw location stream open:
+ * http://<your host>/LocationStreamView/ports/input/0/tuples
+ * 
+ * In a CP4D environment the url look like:
+ * http://<your host>/<job name>/NetflowViewer/
+ * and 
+ * http://<your host>/<job name>/LocationStreamView/ports/input/0/tuples
+ */
+composite NetflowViewer {
+	param
+		expression<rstring> $geoDirectory : getSubmissionTimeValue("geoDirectory", "/etc/geo") ;
+		expression<rstring> $localLocationID : getSubmissionTimeValue("localLocationID", "RCX") ;
+		expression<float64> $aggregationInterval :(float64) getSubmissionTimeValue("aggregationInterval", "1.0") ;
+		expression<rstring> $webContext : getSubmissionTimeValue("webContext", "NetflowViewer") ;
+		expression<int32>	$webserverPort :(int32) getSubmissionTimeValue("webserverPort", "6060") ;
+
+	type
+		FlowType = 
+			uint32 time_stamp, // time_stamp
+			uint32 srcAddress, // IPv4 address of source of flow
+			uint16 srcPort, // UDP/TCP port of source of flow
+			uint32 dstAddress, // IPv4 address of destination of flow
+			uint16 dstPort, // UDP/TCP port of destination of flow
+			uint8 flowProtocol, // IP protocol number of flow, usually 1 for "icmp", 6 for "tcp", or 17 for "udp"
+			float64 flowDuration, // duration of flow, in seconds
+			uint64 flowSize ; // size of flow, in bytes
+		
+		LocatedFlowType = 
+			rstring srcLocationID, 
+			boolean srcInternal, 
+			rstring srcCountry, 
+			rstring srcState, 
+			rstring srcCity, 
+			float64 srcLatitude,
+			float64 srcLongitude, 
+			rstring dstLocationID, 
+			boolean dstInternal, 
+			rstring dstCountry, 
+			rstring dstState, 
+			rstring dstCity,
+			float64 dstLatitude, 
+			float64 dstLongitude, 
+			uint8 flowProtocol, // IP protocol number of flow, usually 1 for "icmp", 6 for "tcp", or 17 for "udp"
+			float64 flowDuration, // duration of flow, in seconds
+			uint64 flowSize ; // size of flow, in bytes
+
+		AggregatedLocationType = 
+			rstring country, // country, if known, or empty string if not
+			rstring stateprovince, // state or province, if known, or empty string if not
+			rstring city, // city, if known, or empty string if not
+			float64 srcLatitude, // latitude of this location
+			float64 srcLongitude, // latitude of this longitude
+			float64 dstLatitude, // latitude of this location
+			float64 dstLongitude, // latitude of this longitude
+			float64 flowDuration, // duration of longest flow to/from this location, in seconds.milliseconds
+			uint64 flowRate ; // sum of rates of flow to/from this location, in bytes per second
+
+	graph
+
+		/* receive tuples from NetflowCollector */
+		stream<rstring windowContent> InjectedTuples = HTTPTupleInjection() {
+			param
+				port: $webserverPort;
+			config
+				// Ensure the operators are in a single PE to have a single web-server
+				placement: partitionColocation("NetflowViewer");
+		}
+
+		/* revert the sender transformation : convert to string*/
+		@catch(exception=streams, tupleTrace=true, stackTrace=false) 
+		stream<list<FlowType> windowContent> InjectedTuples2 as O = Custom(InjectedTuples as I) {
+			logic onTuple I : submit({windowContent=(list<FlowType>)I.windowContent}, O);
+			config
+				// Ensure the operators are in a single PE to have a single web-server
+				placement: partitionColocation("NetflowViewer");
+		}
+
+		/* revert the sender transformation : convert to tuples*/
+		stream<FlowType> InjectedTuples3 as O = Custom(InjectedTuples2 as I) {
+			logic onTuple I : {
+				mutable int32 i = 0;
+				while (i < size(I.windowContent)) {
+					submit(I.windowContent[i], O);
+					++i;
+				}
+			}
+			config
+				// Ensure the operators are in a single PE to have a single web-server
+				placement: partitionColocation("NetflowViewer");
+		}
+
+		/* debug */
+		stream<I> InjectedTuples4 as O = Custom(InjectedTuples3 as I) {
+			logic onTuple I: {
+				//printStringLn("InjectedTuples : " +(rstring) I) ;
+				submit(I, O);
+			}
+			config
+				// Ensure the operators are in a single PE to have a single web-server
+				placement: partitionColocation("NetflowViewer");
+		}
+
+		/**
+		* IPAddressLocation is an operator for the IBM Streams product that finds the geographical location of 
+		* IP addresses received in input tuples, based on the subnets they are part of, and emits output tuples containing the country, 
+		* state or province, city, latitude, and longitude of the subnets. The operator may be configured with one or more output ports, 
+		* and each port may be configured to emit different tuples, as specified by output filters.
+			* The IPAddressLocation operator consumes input tuples containing IP version 
+		* 4 and 6 addresses, selects messages to emit as output tuples with filter expressions, and assigns values to them with 
+		* output attribute assignment expressions. Output filters and attribute assignments are SPL expressions. They may use any of the built-in SPL functions, and any of these functions, which are specific to the IPAddressLocation operator: 
+		* 
+		*/
+		stream<LocatedFlowType> LocatedFlowStream as Out = IPAddressLocation(InjectedTuples4) {
+			param
+				geographyDirectory : getThisToolkitDir() + $geoDirectory ;
+				outputFilters : locationID(srcAddress) != $localLocationID || locationID(dstAddress) != $localLocationID ;
+			output
+				Out : 
+					srcLocationID	= locationID(srcAddress), 
+					srcInternal	= locationID(srcAddress) == $localLocationID, 
+					srcCountry		= locationCountryName(srcAddress), 
+					srcState		= locationSubdivision1Name(srcAddress), 
+					srcCity			= locationCityName(srcAddress),
+					srcLatitude		= locationLatitude(srcAddress), 
+					srcLongitude	= locationLongitude(srcAddress), 
+					dstLocationID	= locationID(dstAddress),
+					dstInternal		= locationID(dstAddress) == $localLocationID, 
+					dstCountry		= locationCountryName(dstAddress), 
+					dstState		= locationSubdivision1Name(dstAddress), 
+					dstCity			= locationCityName(dstAddress), 
+					dstLatitude		= locationLatitude(dstAddress),
+					dstLongitude	= locationLongitude(dstAddress) ;
+			config
+				// Ensure the operators are in a single PE to have a single web-server
+				placement: partitionColocation("NetflowViewer");
+		}
+
+		/* Aggregation */
+		stream<int32 i> AggregateIntervalStream = Beacon() {
+			param
+				period : $aggregationInterval ;
+			config
+				// Ensure the operators are in a single PE to have a single web-server
+				placement: partitionColocation("NetflowViewer");
+		}
+
+		stream<AggregatedLocationType> AggregatedLocationStream as Out
+			= Custom(LocatedFlowStream as InFlows ; AggregateIntervalStream as InInterval) {
+			logic
+				state : {
+					mutable map<rstring, AggregatedLocationType> aggregatedLocations = { } ;
+					mutable float64 lsrcLatitude  = 0.0;		// source latitude local variable
+					mutable float64 lsrcLongitude = 0.0;		// source longitude local variable 
+					mutable float64 ldstLatitude  = 0.0;		// destination latitude local variable 
+					mutable float64 ldstLongitude = 0.0;		// destination longitude local variable 
+					mutable boolean validCoordinates = true;	// valid coordinates
+				}
+				onTuple InFlows : {
+					if (srcLatitude != 0.0) { lsrcLatitude = srcLatitude; }
+					if (srcLongitude != 0.0) { lsrcLongitude = srcLongitude; }
+					if (dstLatitude != 0.0) { ldstLatitude = dstLatitude; }
+					if (dstLongitude != 0.0) { ldstLongitude = dstLongitude; }
+					
+					if ((srcLatitude == 0.0) && (srcLongitude == 0.0) && (dstLatitude == 0.0) && (dstLongitude == 0.0))
+					{ 
+						validCoordinates = false; 
+					}
+					else
+					{ 
+						validCoordinates = true; 
+					}
+					
+					
+					if	(validCoordinates)
+					{		
+				
+						if(! srcInternal)
+						{
+		//					printStringLn("srcInternal  : srcLatitude " + (rstring) srcLatitude + " srcLongitude = " + (rstring)srcLongitude + 
+		//					" dstLatitude = " +  (rstring)dstLatitude + " dstLongitude : " + (rstring)dstLongitude) ;
+							if(!(srcLocationID in aggregatedLocations)) 
+								insertM(aggregatedLocations, srcLocationID, { country = srcCountry, stateprovince =
+								srcState, city = srcCity, srcLatitude = lsrcLatitude, srcLongitude = lsrcLongitude, dstLatitude = ldstLatitude, dstLongitude = ldstLongitude, flowDuration = 0.0, flowRate = 0ul }) ;
+								aggregatedLocations [ srcLocationID ].flowDuration = flowDuration > aggregatedLocations [ srcLocationID ].flowDuration ? flowDuration
+								: aggregatedLocations [ srcLocationID ].flowDuration ;
+								aggregatedLocations [ srcLocationID ].flowRate += flowDuration < 1.0 ? flowSize :(uint64)((float64) flowSize / flowDuration) ;
+						}
+						
+						if(! dstInternal)
+						{
+							if(!(dstLocationID in aggregatedLocations)) 
+								insertM(aggregatedLocations, dstLocationID, { country = dstCountry, stateprovince =
+								srcState, city = srcCity, srcLatitude = lsrcLatitude, srcLongitude = lsrcLongitude, dstLatitude = ldstLatitude, dstLongitude = ldstLongitude, flowDuration = 0.0, flowRate = 0ul }) ;
+								aggregatedLocations [ dstLocationID ].flowDuration = flowDuration > aggregatedLocations [ dstLocationID ].flowDuration ? flowDuration
+								: aggregatedLocations [ dstLocationID ].flowDuration ;
+								aggregatedLocations [ dstLocationID ].flowRate += flowDuration < 1.0 ? flowSize :(uint64)((float64) flowSize / flowDuration) ;
+						}
+					}
+				}
+				onTuple InInterval : {
+						for(rstring locationID in aggregatedLocations) submit(aggregatedLocations [ locationID ], Out) ;
+						submit(Sys.WindowMarker, Out) ;
+						clearM(aggregatedLocations) ;
+				}
+			config
+				// Ensure the operators are in a single PE to have a single web-server
+				placement: partitionColocation("NetflowViewer");
+		}
+
+		/*
+		* Provide a raw view of the location stream
+		*/
+		() as LocationStreamView = HTTPTupleView(AggregatedLocationStream as I) {
+			window
+				I : sliding, count(50), count(1);
+			param
+				port : $webserverPort ;
+			config
+				// Ensure the operators are in a single PE to have a single web-server
+				placement: partitionColocation("NetflowViewer");
+		}
+	
+		/** 
+		* WebSocketSend Operator transmits tuples received on the input port via WebSocket protocol to 
+		* connected clients. Upon startup, this operator is registered to the common pe-wide 
+		* jetty web server. Clients may connect to the websocket context under 
+		* /input/0/wssend. As tuple arrives on the input port a message is triggered and 
+		* transmitted to all currently connected clients. 
+		* Clients can connect and disconnect at any time. 
+		*/
+		() as LocationStreamSocket = WebSocketSend(AggregatedLocationStream) {
+			param
+				port : $webserverPort ;
+			config
+				// Ensure the operators are in a single PE to have a single web-server
+				placement: partitionColocation("NetflowViewer");
+		}
+
+		/**
+		* WebContext embeds a Jetty web server to provide HTTP or HTTPS REST access to files defined 
+		* by the context and contextResourceBase parameters. Limitations:
+		* default no security access is provided to the data, HTTPS must be explicitly configured.
+		*/
+		() as WebContent = WebContext() {
+			param
+				port : $webserverPort ;
+				context : $webContext ;
+				contextResourceBase : getThisToolkitDir() + "/opt/web";
+			config
+				// Ensure the operators are in a single PE to have a single web-server
+				placement: partitionColocation("NetflowViewer");
+		}
+
+	config
+		restartable: false;
+}

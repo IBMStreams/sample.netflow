@@ -1,7 +1,7 @@
 # Copyright (C)2020 International Business Machines Corporation and
 # others. All Rights Reserved.
 
-.PHONY: all distributed clean 
+.PHONY: all build distributed clean 
 
 # assume toolkit default locations
 STREAMS_INET_TOOLKIT ?=${STREAMS_INSTALL}/toolkits/com.ibm.streamsx.inet
@@ -21,7 +21,7 @@ else
     SPLC = $(STREAMS_INSTALL)/bin/sc
     DATA_DIR = data
     OUTPUT_DIR = output
-     TOOLKIT_PATH = $(STREAMS_INET_TOOLKIT):$(STREAMS_NETWORK_TOOLKIT)
+    TOOLKIT_PATH = $(STREAMS_INET_TOOLKIT):$(STREAMS_NETWORK_TOOLKIT)
 endif
 
 SPLC_FLAGS ?= -a
