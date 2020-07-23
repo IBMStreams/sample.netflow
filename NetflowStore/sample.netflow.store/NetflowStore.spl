@@ -20,8 +20,7 @@ composite NetflowStore {
 		expression<rstring> $jdbcUrl : "jdbc:db2://tank1.fyre.ibm.com:50000/TESTDB2:retrieveMessagesFromServerOnGetMessage=true;" ;
 		expression<rstring> $jdbcUser : "db2inst1" ;
 		expression<rstring> $jdbcPassword : "***REMOVED***" ;
- 
-			
+
 	type
 		FlowType = 
 			uint32 time_stamp, // time_stamp
