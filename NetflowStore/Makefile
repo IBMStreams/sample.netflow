@@ -35,7 +35,7 @@ build: distributed
 
 all: clean build
 
-# We are in CP4D environment: do not use data directory
+# We are in Cloud Pak for Data environment: do not use data directory
 distributed:
 	$(SPLC) $(SPLC_FLAGS) -M $(SPL_MAIN_COMPOSITE) -t ${TOOLKIT_PATH} --output-dir $(OUTPUT_DIR) $(SPL_CMD_ARGS)
 
