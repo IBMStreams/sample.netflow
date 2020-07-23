@@ -73,18 +73,18 @@ Submit the `NetflowCollector` job and provide the url of your `NetflowViewer` jo
 
 The url of the `NetflowCollector` is:
 
-* OnPrem http://<hostname>:<webserver port>/InjectedTuples/ports/output/0/inject
-* CP4D   https://<exposed route of streams-endpoint-monitor>/<job name>/InjectedTuples/ports/output/0/inject
+* OnPrem http://\<hostname\>:\<webserver port\>/InjectedTuples/ports/output/0/inject
+* CP4D   https://\<exposed route of streams-endpoint-monitor\>/\<job name\>/InjectedTuples/ports/output/0/inject
 
-If the `NetflowCollector` job has no job name you must substitute <job name> with streams/jobs/<jobid>
+If the `NetflowCollector` job has no job name you must substitute \<job name\> with streams/jobs/\<jobid\>
 
 To view the Location Stream View open with your browser the url:
 
-* OnPrem http://<hostname>:<webserver port>/LocationStreamView/ports/input/0/tuples
-* CP4D   https://<exposed route of streams-endpoint-monitor>/<job name>/LocationStreamView/ports/input/0/tuples
+* OnPrem http://\<hostname\>:\<webserver port\>/LocationStreamView/ports/input/0/tuples
+* CP4D   https://\<exposed route of streams-endpoint-monitor\>/\<job name\>/LocationStreamView/ports/input/0/tuples
 
 To view the Netflow visualization open with your browser the url:
 
-* OnPrem http://<hostname>:<webserver port>/NetflowViewer
+* OnPrem http://\<hostname\>:\\<webserver port\>/NetflowViewer
 * CP4D   not available
 
