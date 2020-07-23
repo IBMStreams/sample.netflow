@@ -1,9 +1,7 @@
 # Copyright (C)2020 International Business Machines Corporation and
-# others. All Rights Reserved.
+# # others. All Rights Reserved.
+.PHONY: build all distributed clean
 
-.PHONY: all build distributed clean 
-
-# assume toolkit default locations
 STREAMS_INET_TOOLKIT ?= ${STREAMS_INSTALL}/toolkits/com.ibm.streamsx.inet
 STREAMS_NETWORK_TOOLKIT ?= ${STREAMS_INSTALL}/toolkits/com.ibm.streamsx.network
 
@@ -24,19 +22,17 @@ else
     TOOLKIT_PATH = $(STREAMS_INET_TOOLKIT):$(STREAMS_NETWORK_TOOLKIT)
 endif
 
-SPLC_FLAGS ?= -a
+SPL_MAIN_COMPOSITE = sample.netflow.store::NetflowStoreCollector
+SPLC_FLAGS = -a
 SPL_CMD_ARGS ?=
-SPLC = $(STREAMS_INSTALL)/bin/sc
-
-SPL_MAIN_COMPOSITE = sample.netflow::NetflowCollector
 
 build: distributed
 
 all: clean build
 
 distributed:
-	$(SPLC) $(SPLC_FLAGS) -M $(SPL_MAIN_COMPOSITE) -t ${TOOLKIT_PATH} --data-directory $(DATA_DIR) --output-dir $(OUTPUT_DIR) $(SPL_CMD_ARGS)
+	$(SPLC) $(SPLC_FLAGS) -M $(SPL_MAIN_COMPOSITE) -t ${TOOLKIT_PATH} --output-dir $(OUTPUT_DIR) $(SPL_CMD_ARGS)
 
 clean:
-	$(SPLC) -C $(SPLC_FLAGS) -M $(SPL_MAIN_COMPOSITE) -t ${TOOLKIT_PATH} --data-directory $(DATA_DIR) --output-dir $(OUTPUT_DIR) -C $(SPL_CMD_ARGS)
+	$(SPLC) $(SPLC_FLAGS) -M $(SPL_MAIN_COMPOSITE) -t ${TOOLKIT_PATH} --output-dir $(OUTPUT_DIR) -C $(SPL_CMD_ARGS)
 	rm -rf output
