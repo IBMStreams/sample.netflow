@@ -85,6 +85,6 @@ To view the Location Stream View open with your browser the url:
 
 To view the Netflow visualization open with your browser the url:
 
-* OnPrem http://\<hostname\>:\\<webserver port\>/NetflowViewer
+* OnPrem http://\<hostname\>:\<webserver port\>/NetflowViewer
 * CP4D   not available
 
