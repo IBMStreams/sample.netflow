@@ -3,22 +3,22 @@
 ** All Rights Reserved
 */
 
-namespace sample.netflow;
+namespace sample.netflow.store;
 
 use com.ibm.streamsx.network.ipv4::* ;
 use com.ibm.streamsx.network.source::* ;
 use com.ibm.streamsx.network.parse::* ;
 use com.ibm.streamsx.inet.http::HTTPRequest;
 
-composite NetflowCollector {
+composite NetflowStoreCollector {
 	param
 		expression<float64> $aggretationTime : (float64)getSubmissionTimeValue("aggretationTime", "5.0") ;
 		expression<rstring> $networkInterface :         getSubmissionTimeValue("networkInterface", "eth0") ;
 		expression<rstring> $pcapFilename:              getSubmissionTimeValue("pcapFilename", "/etc/sample_netflow9_new.pcap" );
 		expression<float64> $period:           (float64)getSubmissionTimeValue("period", "3.0");
-		expression<rstring> $url:                       getSubmissionTimeValue("url", "https://streams-endpoint-monitor-zen.apps.cp4dstreams2.os.fyre.ibm.com/Netflow/InjectedTuples/ports/output/0/inject") ;
+		expression<rstring> $url:                       getSubmissionTimeValue("url", "http://localhost:6060/InjectedTuples/ports/output/0/inject") ;
 		expression<boolean> $runOnce:          (boolean)getSubmissionTimeValue("runOnce", "false") ; //for debugging purposes run only one pcap file
-
+		
 		expression<int32> $transmissionBurstTupleCount: 500;
 
 	type
@@ -28,7 +28,7 @@ composite NetflowCollector {
 			blob netflowMessage ; // the Netflow message from a packet, excluding all network headers
 		
 		FlowType = 
-			uint32 time_stamp,
+			uint32 time_stamp, 
 			uint32 srcAddress, // IPv4 address of source of flow
 			uint16 srcPort, // UDP/TCP port of source of flow
 			uint32 dstAddress, // IPv4 address of destination of flow
@@ -55,7 +55,7 @@ composite NetflowCollector {
 			output
 				O : pcapFilename = getThisToolkitDir() + $pcapFilename;
 			config
-				placement: partitionColocation("NetflowCollector");
+				placement: partitionColocation("NetflowStoreCollector");
 		}
 
 		/* for debugging allow to pass only one file name tuple */
@@ -73,7 +73,7 @@ composite NetflowCollector {
 					}
 				}
 				config
-					placement: partitionColocation("NetflowCollector");
+					placement: partitionColocation("NetflowStoreCollector");
 		}
 
 		/* read the pcap file */
@@ -87,7 +87,7 @@ composite NetflowCollector {
 					netflowSource = IPV4_SRC_ADDRESS(),
 					netflowMessage = PAYLOAD_DATA();
 				config
-					placement: partitionColocation("NetflowCollector");
+					placement: partitionColocation("NetflowStoreCollector");
 		}
 
 		/**
@@ -125,9 +125,7 @@ composite NetflowCollector {
 				// excluding all network headers. Note that the data may have been truncated when the packet was captured.
 				netflowMessage = PAYLOAD_DATA() ;
 		}
-			
-	
-		 
+
 		() as PacketSink = FileSink(PacketStream)
 		{
 			logic
@@ -163,25 +161,23 @@ composite NetflowCollector {
 					flowDuration 	= ((float64)NETFLOW_LAST_SWITCHED() - (float64)NETFLOW_FIRST_SWITCHED()) / 1000.0, 
 					flowSize 		= NETFLOW_IN_BYTES() ;
 			config
-				placement: partitionColocation("NetflowCollector");
+				placement: partitionColocation("NetflowStoreCollector");
 		}
-	
-		/* aggregate by groups srcAddress, dstAddress, */
+
+		/* aggregate by groups srcAddress, srcPort, dstAddress, dstPort, flowProtocol */
 		stream<FlowType> AggregateStream as O = Aggregate(FlowStream as I) {
 			window
 				I: tumbling, time($aggretationTime);
 			param
-				groupBy: srcAddress, dstAddress;
+				groupBy: srcAddress, srcPort, dstAddress, dstPort, flowProtocol;
 			output
 				O : flowDuration = Sum(flowDuration),
 					flowSize = Sum(flowSize);
 			config
-				placement: partitionColocation("NetflowCollector");
+				placement: partitionColocation("NetflowStoreCollector");
 		}
 
-		/* concatenate the transmission data
-		 * build a list tuple for each window; limit size to $transmissionBurstTupleCount
-		 */
+		/* build a list tuple for each window; limit size to $transmissionBurstTupleCount */
 		stream<list<FlowType> windowContent> AggregateStream2 as O = Custom(AggregateStream as I) {
 			logic
 				state : mutable list<FlowType> theList = [];
@@ -199,14 +195,14 @@ composite NetflowCollector {
 					}
 				}
 			config
-				placement: partitionColocation("NetflowCollector");
+				placement: partitionColocation("NetflowStoreCollector");
 		}
 
 		/* cast the list to rstring */
 		stream<rstring windowContent> AggregateStream3 as O = Custom(AggregateStream2 as I) {
 			logic onTuple I : submit({windowContent=(rstring)I.windowContent}, O);
 			config
-				placement: partitionColocation("NetflowCollector");
+				placement: partitionColocation("NetflowStoreCollector");
 		}
 
 		/* send collection data to netflow viewer */
@@ -225,7 +221,7 @@ composite NetflowCollector {
 				requestAttributes : "windowContent";
 				sslAcceptAllCertificates: true;
 			config
-				placement: partitionColocation("NetflowCollector");
+				placement: partitionColocation("NetflowStoreCollector");
 		}
 
 		/* Log the results */
@@ -239,6 +235,6 @@ composite NetflowCollector {
 					}
 				}
 				config
-					placement: partitionColocation("NetflowCollector");
+					placement: partitionColocation("NetflowStoreCollector");
 		}
 }

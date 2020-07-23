@@ -1,0 +1,131 @@
+namespace sample.netflow.store;
+
+use com.ibm.streamsx.inet.rest::HTTPTupleInjection;
+use com.ibm.streamsx.inet.rest::HTTPTupleView;
+use com.ibm.streamsx.jdbc::* ;
+use com.ibm.streamsx.jdbc.types::* ;
+
+/*
+ * https://streams-endpoint-monitor-zen.apps.cp4dstreams2.os.fyre.ibm.com/NetflowStore/LocationStreamView/ports/input/0/tuples
+ * 
+ */
+composite NetflowStore {
+
+	param
+		expression<float64> $aggregationInterval :(float64) getSubmissionTimeValue("aggregationInterval", "1.0") ;
+		expression<int32>	$webserverPort :(int32) getSubmissionTimeValue("webserverPort", "6060") ;
+
+		expression<rstring> $jdbcDriverLib : "opt/db2jcc4.jar" ;
+		expression<rstring> $jdbcClassName : "com.ibm.db2.jcc.DB2Driver" ;
+		expression<rstring> $jdbcUrl : "jdbc:db2://tank1.fyre.ibm.com:50000/TESTDB2:retrieveMessagesFromServerOnGetMessage=true;" ;
+		expression<rstring> $jdbcUser : "db2inst1" ;
+		expression<rstring> $jdbcPassword : "***REMOVED***" ;
+ 
+			
+	type
+		FlowType = 
+			uint32 time_stamp, // time_stamp
+			uint32 srcAddress, // IPv4 address of source of flow
+			uint16 srcPort, // UDP/TCP port of source of flow
+			uint32 dstAddress, // IPv4 address of destination of flow
+			uint16 dstPort, // UDP/TCP port of destination of flow
+			uint8 flowProtocol, // IP protocol number of flow, usually 1 for "icmp", 6 for "tcp", or 17 for "udp"
+			float64 flowDuration, // duration of flow, in seconds
+			uint64 flowSize ; // size of flow, in bytes
+
+	graph
+	
+		stream<rstring windowContent> InjectedTuples = HTTPTupleInjection() {
+		param
+			port: $webserverPort;
+		config
+			placement: partitionColocation("NetflowStore");
+		}
+
+		/* revert the sender transformation : convert to tuple list*/
+		@catch(exception=all, tupleTrace=true, stackTrace=false) 
+		stream<list<FlowType> windowContent> InjectedTuples2 as O = Custom(InjectedTuples as I) {
+			logic onTuple I : submit({windowContent=(list<FlowType>)I.windowContent}, O);
+			config
+				placement: partitionColocation("NetflowStore");
+		}
+
+		/* revert the sender transformation : convert to tuples*/
+		stream<FlowType> InjectedTuples3 as O = Custom(InjectedTuples2 as I) {
+			logic onTuple I : {
+				mutable int32 i = 0;
+				while (i < size(I.windowContent)) {
+					submit(I.windowContent[i], O);
+					++i;
+				}
+			}
+			config
+				placement: partitionColocation("NetflowStore");
+		}
+
+		/* debug */
+		stream<I> InjectedTuples4 as O = Custom(InjectedTuples3 as I) {
+			logic onTuple I: {
+				//printStringLn("InjectedTuples : " +(rstring) I) ;
+				submit(I, O);
+			}
+			config
+				placement: partitionColocation("NetflowStore");
+		}
+
+		/** 
+		 * builds a time stamp string in format YYYY-MM-DD hh:mm:ss
+		 * creates insert SQL statement
+		*/
+		stream<rstring sql> SqlStatement as O = Custom(InjectedTuples4 as I) {
+			logic 
+				onTuple I: {
+					mutable timestamp ts = createTimestamp((int64)time_stamp, 0u);
+					// build time stamp string in the format YYYY-MM-DD hh:mm:ss
+					mutable rstring formatedTimeStamp = "'" 
+						+ (rstring) year(ts) + "-" 
+						+ ((month(ts) < 9u) ? "0" : "") +(rstring)(month(ts) + 1u) + "-"
+						+ ((day(ts) < 10u) ? "0" : "") + (rstring) day(ts) + " " 
+						+ ((hour(ts) < 10u) ? "0" : "") +(rstring) hour(ts) + ":"
+						+ ((minute(ts) < 10u) ? "0" : "") +(rstring) minute(ts) + ":" 
+						+ ((second(ts) < 10u) ? "0" : "") +(rstring) second(ts) + "'";
+						
+					submit({sql= "INSERT INTO NETFLOW (TIME_STAMP, SRCADDRESS, SRCPORT, DSTADDRESS, DSTPORT, FLOWPROTOCOL, FLOWDURATION, FLOWSIZE) "
+								+ " VALUES (" + formatedTimeStamp + ", " + (rstring)srcAddress + ", " + (rstring)srcPort 
+								+ ", " + (rstring)dstAddress + ", " + (rstring)dstPort + ", " + (rstring)flowProtocol 
+								+ ", " + (rstring)flowDuration + ", " + (rstring)flowSize + ")" } , O);
+			}
+			config
+				placement: partitionColocation("NetflowStore");
+		}
+
+		/* Write to db */
+		stream<FlowType> insertIntoDB as O = JDBCRun(SqlStatement as I) {
+		//	logic 
+		//		onTuple I: printStringLn("insertIntoDB  : " +(rstring) I) ;
+			param
+				jdbcDriverLib	: $jdbcDriverLib ;
+				jdbcClassName	: $jdbcClassName ;
+				jdbcUrl		: $jdbcUrl ;
+				jdbcUser		: $jdbcUser ;
+				jdbcPassword	: $jdbcPassword ;
+				statementAttr	: sql;
+			config
+				placement: partitionColocation("NetflowStore");
+		}
+
+		/*
+		* Provide a raw view of the location stream
+		*/
+		() as LocationStreamView = HTTPTupleView(InjectedTuples4 as I) {
+			window
+				I : sliding, count(50), count(1);
+			param
+				port : $webserverPort ;
+			config
+				placement: partitionColocation("NetflowStore");
+		}
+
+	config
+		restartable: true;
+}
