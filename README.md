@@ -5,7 +5,7 @@ The Netflow Collector parses Netflow messages and aggregates the transferred dat
 The aggregation time interval can be configured. 
 The Netflow Viewer visualizes the aggregated data, including the geographical locations of source and destination.
 
-This repository contains artifacts for 2 different applications `NetflowSample` and the `NetflowDemo`.
+This repository contains artifacts for 2 different applications [NetflowSample](README.md#netflow-sample) and the [NetflowDemo](README.md#netflow-demo).
 
 ## Netflow Sample
 
