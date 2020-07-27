@@ -5,11 +5,11 @@ The Netflow Collector parses Netflow messages and aggregates the transferred dat
 The aggregation time interval can be configured. 
 The Netflow Viewer visualizes the aggregated data, including the geographical locations of source and destination.
 
-This repository contains artifacts for 2 different applications `NetflowCollector` and the `NetflowVieWer`.
+This repository contains artifacts for 2 different applications `NetflowSample` and the `NetflowDemo`.
 
 ## Netflow Sample
 
-The Netflow Sample is a is simple out of the box running demonstration for an application that collects network statistics and presents them centrally in a web display. The Netflow Sample is composed of 2 jobs; the `NetflowCollector` and the `NetflowVieWer`.
+The Netflow Sample is a is simple out of the box running demonstration for an application that collects network statistics and presents them centrally in a web display. The Netflow Sample is composed of 2 jobs; the `NetflowCollector` and the `NetflowViewer`.
 
 ### NetflowCollector
 
@@ -57,7 +57,7 @@ Move to the project directories NetflowCollector, NetflowStore, NetflowStoreColl
 The build scripts assume that the toolkits are installed in ${STREAMS_INSTALL}/toolkits/
 You can overwrite the default toolkit locations by setting environments STREAMS_NETWORK_TOOLKIT, STREAMS_INET_TOOLKIT, STREAMS_INETSERVER_TOOLKIT and STREAMS_JDBC_TOOLKIT
 
-### Build with Stremas Studio
+### Build with Streams Studio
 
 Clone the repository or download the source archive.
 Import all existing projects to your workspace.
