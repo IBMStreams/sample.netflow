@@ -1,20 +1,23 @@
 # sample.netflow
 
-This sample collects and aggregates network traffic data from IP routers or L3 switches. 
-The Netflow Collector parses Netflow messages and aggregates the transferred data sizes per source/destination/protocol. 
+This repository contains artifacts for 2 different applications [Netflow Map Viewer Application](README.md#netflow-map-viewer-application) and the [Netflow To Database Application](README.md#netflow-to-database-application).
+
+Both applications collect and aggregate network traffic data from IP routers or L3 switches. 
+The Netflow messages are parsed and the data volume is aggregated. The transferred data volumes per source/destination/protocol-group is transferred 
+from the collector job to the viewer or store job. 
 The aggregation time interval can be configured. 
-The Netflow Viewer visualizes the aggregated data, including the geographical locations of source and destination.
+The Netflow Map Viewer Application visualizes the aggregated data, including the geographical locations of source and destination. 
+The Netflow To Database Application stores the aggregated data into a database.
 
-This repository contains artifacts for 2 different applications [NetflowSample](README.md#netflow-sample) and the [NetflowDemo](README.md#netflow-demo).
+## Netflow Map Viewer Application
 
-## Netflow Sample
+The Netflow Map Viewer Application is a is simple out of the box running demonstration for an application that collects network 
+statistics and presents them centrally in a web display. The Netflow Map Viewer Application is composed of 2 jobs; the `NetflowViewerCollector` and the `NetflowViewer`.
 
-The Netflow Sample is a is simple out of the box running demonstration for an application that collects network statistics and presents them centrally in a web display. The Netflow Sample is composed of 2 jobs; the `NetflowCollector` and the `NetflowViewer`.
+### NetflowViewerCollector
 
-### NetflowCollector
-
-* The `NetflowCollector` collects the Netflow data from the Edge devices, makes the first data aggregation and transmits the data to `NetflowViewer`.
-* The connection from `NetflowCollector` to `NetflowViewer` is currently a HTTP Post and requires the Endpoint-Monitor application in Cloud Pak for Data.
+* The `NetflowViewerCollector` collects the Netflow data from the Edge devices, makes the first data aggregation and transmits the data to `NetflowViewer`.
+* The connection from `NetflowViewerCollector` to `NetflowViewer` is currently a HTTP Post and requires the Endpoint-Monitor application in Cloud Pak for Data.
 
 ### NetflowViewer
 
@@ -22,9 +25,10 @@ The Netflow Sample is a is simple out of the box running demonstration for an ap
 * The `NetflowViewer` provides a raw data view, the Location Stream View and the Netflow View.
 * Due to connection limitations (no websocket connections), the Netflow View is currently not available in Cloud Pak for Data.
 
-## Netflow Demo
+## Netflow To Database Application
 
-The Netflow Demo is a demonstration for an application that collects network statistics and puts them in a central database, the Netflow Demo is composed of 2 Streams Jobs: `NetflowStore` and `NetflowStoreCollector`.
+The Netflow To Database Application is a demonstration for an application that collects network statistics and puts them in 
+a central database, the Netflow To Database Application is composed of 2 Streams Jobs: `NetflowStore` and `NetflowStoreCollector`.
 
 ### NetflowStoreCollector
 
@@ -52,7 +56,7 @@ This application requires the following Streams toolkits:
 ### Command line build
 
 Clone the repository or download the source archive.
-Move to the project directories NetflowCollector, NetflowStore, NetflowStoreCollector, NetflowViewer. Execute command `make`.
+Move to the project directories NetflowViewerCollector, NetflowViewer, NetflowStore or NetflowStoreCollector and execute command `make`.
 
 The build scripts assume that the toolkits are installed in ${STREAMS_INSTALL}/toolkits/
 You can overwrite the default toolkit locations by setting environments STREAMS_NETWORK_TOOLKIT, STREAMS_INET_TOOLKIT, STREAMS_INETSERVER_TOOLKIT and STREAMS_JDBC_TOOLKIT
@@ -68,13 +72,13 @@ Right click the project and select `Build`
 
 tbd
 
-## Use the Netflow Sample
+## Netflow Map Viewer Application
 
 Submit first the `NetflowViewer` job and provide the webserver port as submission time parameter. If the port is not provided, the default 6060 is used.
 
-Submit the `NetflowCollector` job and provide the url of your `NetflowViewer` job as submission time parameter.
+Submit the `NetflowViewerCollector` job and provide the url of your `NetflowViewer` job as submission time parameter.
 
-The url of the `NetflowCollector` is:
+The url of the `NetflowViewerCollector` is:
 
 * OnPrem              http://\<hostname\>:\<webserver port\>/InjectedTuples/ports/output/0/inject
 * Cloud Pak for Data  https://\<exposed route of streams-endpoint-monitor\>/\<job name\>/InjectedTuples/ports/output/0/inject
@@ -90,4 +94,3 @@ To view the Netflow visualization open with your browser the url:
 
 * OnPrem             http://\<hostname\>:\<webserver port\>/NetflowViewer
 * Cloud Pak for Data not available
-

@@ -1,10 +1,10 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <info:toolkitInfoModel xmlns:common="http://www.ibm.com/xmlns/prod/streams/spl/common" xmlns:info="http://www.ibm.com/xmlns/prod/streams/spl/toolkitInfo">
   <info:identity>
-    <info:name>NetflowCollector</info:name>
-    <info:description>The collector job of the Netflow Sample Application</info:description>
+    <info:name>NetflowViewer</info:name>
+    <info:description>The viewer job of the Netflow Map Viewer Application</info:description>
     <info:version>1.0.0</info:version>
-    <info:requiredProductVersion>4.3.1.0</info:requiredProductVersion>
+    <info:requiredProductVersion>4.3.1.1</info:requiredProductVersion>
   </info:identity>
   <info:dependencies>
     <info:toolkit>
@@ -12,8 +12,8 @@
       <common:version>[3.2.1,4.0.0)</common:version>
     </info:toolkit>
     <info:toolkit>
-      <common:name>com.ibm.streamsx.inet</common:name>
-      <common:version>[3.1.0,4.0.0)</common:version>
+      <common:name>com.ibm.streamsx.inetserver</common:name>
+      <common:version>[4.3.2,5.0.0)</common:version>
     </info:toolkit>
   </info:dependencies>
 </info:toolkitInfoModel>
