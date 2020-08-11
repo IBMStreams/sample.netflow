@@ -3,7 +3,7 @@
 ** Copyright (C) 2015, 2020 International Business Machines Corporation
 ** All Rights Reserved
 */
-namespace sample.netflow;
+namespace sample.netflow.viewer;
 
 use com.ibm.streamsx.network.location::* ;
 use com.ibm.streamsx.inet.rest::* ;

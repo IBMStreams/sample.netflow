@@ -1,15 +1,15 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <info:toolkitInfoModel xmlns:common="http://www.ibm.com/xmlns/prod/streams/spl/common" xmlns:info="http://www.ibm.com/xmlns/prod/streams/spl/toolkitInfo">
   <info:identity>
-    <info:name>NetflowViewer</info:name>
-    <info:description>The viewer job of the Netflow Sample Application</info:description>
+    <info:name>NetflowStore</info:name>
+    <info:description>The store job of the Netflow To Database Application</info:description>
     <info:version>1.0.0</info:version>
     <info:requiredProductVersion>4.3.1.1</info:requiredProductVersion>
   </info:identity>
   <info:dependencies>
     <info:toolkit>
-      <common:name>com.ibm.streamsx.network</common:name>
-      <common:version>[3.2.1,4.0.0)</common:version>
+      <common:name>com.ibm.streamsx.jdbc</common:name>
+      <common:version>1.6.0</common:version>
     </info:toolkit>
     <info:toolkit>
       <common:name>com.ibm.streamsx.inetserver</common:name>
