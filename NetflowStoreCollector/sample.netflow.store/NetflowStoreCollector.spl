@@ -50,15 +50,18 @@ composite NetflowStoreCollector {
 
 		/* Trigger the file read operation */
 		stream<rstring pcapFilename> PcapFileStream as O = Beacon() {
-			param
-				period : $period;
+			//param
+				//period : $period;
 			output
-				O : pcapFilename = getThisToolkitDir() + $pcapFilename;
+				O : pcapFilename = getThisToolkitDir();
 			config
 				placement: partitionColocation("NetflowStoreCollector");
 		}
 
-		/* for debugging allow to pass only one file name tuple */
+		/* 
+		 * for debugging allow to pass only one file name tuple
+		 * Pass 5 files in a burst
+		 */
 		stream<I> PcapFileStream2 as O = Custom(PcapFileStream as I) {
 			logic
 				state : {
@@ -66,9 +69,19 @@ composite NetflowStoreCollector {
 					mutable boolean done = false;
 				}
 				onTuple I : {
+					mutable O otuple = {};
 					if ( ( ! runOnce ) || ( ! done )) {
-						printStringLn("pcapFilename : " +(rstring) pcapFilename) ;
-						submit(I, O);
+						//printStringLn("pcapFilename : " +(rstring) pcapFilename) ;
+						otuple.pcapFilename = I.pcapFilename + "/etc/sample_netflow_20200723-1.pcap";
+						submit(otuple, O);
+						otuple.pcapFilename = I.pcapFilename + "/etc/sample_netflow_20200723-2.pcap";
+						submit(otuple, O);
+						otuple.pcapFilename = I.pcapFilename + "/etc/sample_netflow_20200723-3.pcap";
+						submit(otuple, O);
+						otuple.pcapFilename = I.pcapFilename + "/etc/sample_netflow_20200723-4.pcap";
+						submit(otuple, O);
+						otuple.pcapFilename = I.pcapFilename + "/etc/sample_netflow_20200723-5.pcap";
+						submit(otuple, O);
 						done = true;
 					}
 				}
@@ -77,7 +90,7 @@ composite NetflowStoreCollector {
 		}
 
 		/* read the pcap file */
-		stream<PacketType> PacketStream as Out = PacketFileSource(PcapFileStream2) {
+		stream<PacketType> PacketStream as Out = PacketFileSource(PcapFileStream2 as I) {
 			param
 				//pcapFilename: dataDirectory() + $pcapFilename;
 				inputFilter: "udp port 2055";
@@ -87,6 +100,7 @@ composite NetflowStoreCollector {
 					netflowSource = IPV4_SRC_ADDRESS(),
 					netflowMessage = PAYLOAD_DATA();
 				config
+					threadedPort: queue(I, Sys.Wait, 1000000);
 					placement: partitionColocation("NetflowStoreCollector");
 		}
 
@@ -143,9 +157,9 @@ composite NetflowStoreCollector {
 		 * data. The operator may be configured with one or more output ports, and each port 
 		 * may be configured to emit different tuples, as specified by output filters. 
 		 * The tuples contain individual fields from the input message, as specified by 
-		 * output attribute assignments.	
+		 * output attribute assignments.
 		*/
-		stream<FlowType> FlowStream as Out = NetflowMessageParser(PacketStream) {
+		stream<FlowType> FlowStream as Out = NetflowMessageParser(PacketStream as I) {
 			param
 				messageAttribute : netflowMessage ;
 				sourceAttribute : netflowSource ;
@@ -161,24 +175,84 @@ composite NetflowStoreCollector {
 					flowDuration 	= ((float64)NETFLOW_LAST_SWITCHED() - (float64)NETFLOW_FIRST_SWITCHED()) / 1000.0, 
 					flowSize 		= NETFLOW_IN_BYTES() ;
 			config
+				threadedPort: queue(I, Sys.Wait, 1000000);
 				placement: partitionColocation("NetflowStoreCollector");
 		}
 
-		/* aggregate by groups srcAddress, srcPort, dstAddress, dstPort, flowProtocol */
-		stream<FlowType> AggregateStream as O = Aggregate(FlowStream as I) {
+		/* collect tuples from 5 files into a list 
+		 * submit all tuples after 5th file and submit a punctuation
+		 */
+		stream<I> FlowStream1 as O = Custom(FlowStream as I) {
+			logic
+				state : {
+					mutable int32 c = 0;
+					mutable list<I> tl = [];
+				}
+				onTuple I : {
+					appendM(tl, I);
+				}
+				onPunct I : {
+					++c;
+					if ((c % 5) == 0) {
+						mutable int32 i = 0;
+						while (i < size(tl)) {
+							submit(tl[i], O);
+							++i;
+						}
+						submit(Sys.WindowMarker, O);
+					}
+				}
+			config
+				placement: partitionColocation("NetflowStoreCollector");
+		}
+
+		/* aggregate 5 files by groups srcAddress, srcPort, dstAddress, dstPort, flowProtocol */
+		stream<FlowType> AggregateStream as O = Aggregate(FlowStream1 as I) {
 			window
-				I: tumbling, time($aggretationTime);
+				I: tumbling, punct();
 			param
 				groupBy: srcAddress, srcPort, dstAddress, dstPort, flowProtocol;
 			output
 				O : flowDuration = Sum(flowDuration),
 					flowSize = Sum(flowSize);
 			config
+				threadedPort: queue(I, Sys.Wait, 1000000);
+				placement: partitionColocation("NetflowStoreCollector");
+		}
+
+		/* measurement interval */
+		stream<rstring pcapFilename> TimerStream as O = Beacon() {
+			param
+				period : 100.0;
+			output
+				O : pcapFilename = "xxx";
+			config
+				placement: partitionColocation("NetflowStoreCollector");
+		}
+
+		/* count the aggregation tuples in an measurement interval */
+		stream<I> AggregateStream1 as O = Custom(AggregateStream as I; TimerStream as T) {
+			logic
+				state : mutable int64 counter = 0l;
+				onTuple I : {
+					//printStringLn("AggregateStream Tuple");
+					++counter;
+					submit(I, O);
+				}
+				onPunct I : {
+					printStringLn("AggregateStream " + (rstring)currentPunct());
+					submit(currentPunct(), O);
+				}
+				onTuple T : {
+					printStringLn("Connection counter: " + (rstring)counter);
+					counter = 0l;
+				}
+			config
 				placement: partitionColocation("NetflowStoreCollector");
 		}
 
 		/* build a list tuple for each window; limit size to $transmissionBurstTupleCount */
-		stream<list<FlowType> windowContent> AggregateStream2 as O = Custom(AggregateStream as I) {
+		stream<list<FlowType> windowContent> AggregateStream2 as O = Custom(AggregateStream1 as I) {
 			logic
 				state : mutable list<FlowType> theList = [];
 				onTuple I : {
@@ -193,6 +267,7 @@ composite NetflowStoreCollector {
 						submit({windowContent=theList}, O);
 						clearM(theList);
 					}
+					submit(Sys.WindowMarker, O);
 				}
 			config
 				placement: partitionColocation("NetflowStoreCollector");
@@ -200,13 +275,24 @@ composite NetflowStoreCollector {
 
 		/* cast the list to rstring */
 		stream<rstring windowContent> AggregateStream3 as O = Custom(AggregateStream2 as I) {
-			logic onTuple I : submit({windowContent=(rstring)I.windowContent}, O);
+			logic
+				onTuple I : submit({windowContent=(rstring)I.windowContent}, O);
+				onPunct I : submit(currentPunct(), O);
 			config
 				placement: partitionColocation("NetflowStoreCollector");
 		}
 
-		/* send collection data to netflow viewer */
-		stream<HTTPResponseType> HTTPResponse = HTTPRequest(AggregateStream3) {
+		() as DumpSink = Custom(AggregateStream3 as I) {
+			logic
+				onTuple I : mutable int32 c = 11;
+				onPunct I : mutable int32 c = 11;
+			config
+				placement: partitionColocation("NetflowStoreCollector");
+		}
+
+		
+		/* do not sent data measurement only! send collection data to netflow viewer */
+		/*stream<HTTPResponseType> HTTPResponse = HTTPRequest(AggregateStream3) {
 			param
 				fixedUrl: $url;
 				fixedMethod: POST;
@@ -222,10 +308,10 @@ composite NetflowStoreCollector {
 				sslAcceptAllCertificates: true;
 			config
 				placement: partitionColocation("NetflowStoreCollector");
-		}
+		}*/
 
 		/* Log the results */
-		() as PrintResponse = Custom(HTTPResponse as I) {
+		/*() as PrintResponse = Custom(HTTPResponse as I) {
 			logic
 				onTuple I : {
 					if ((err != "") || (stat < 200) || (stat > 299)) {
@@ -236,5 +322,5 @@ composite NetflowStoreCollector {
 				}
 				config
 					placement: partitionColocation("NetflowStoreCollector");
-		}
+		}*/
 }

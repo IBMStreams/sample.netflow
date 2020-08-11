@@ -2,8 +2,8 @@ namespace sample.netflow.store;
 
 use com.ibm.streamsx.inet.rest::HTTPTupleInjection;
 use com.ibm.streamsx.inet.rest::HTTPTupleView;
-use com.ibm.streamsx.jdbc::* ;
-use com.ibm.streamsx.jdbc.types::* ;
+//use com.ibm.streamsx.jdbc::* ;
+//use com.ibm.streamsx.jdbc.types::* ;
 
 /*
  * https://streams-endpoint-monitor-zen.apps.cp4dstreams2.os.fyre.ibm.com/NetflowStore/LocationStreamView/ports/input/0/tuples
@@ -76,7 +76,7 @@ composite NetflowStore {
 		 * builds a time stamp string in format YYYY-MM-DD hh:mm:ss
 		 * creates insert SQL statement
 		*/
-		stream<rstring sql> SqlStatement as O = Custom(InjectedTuples4 as I) {
+		/*stream<rstring sql> SqlStatement as O = Custom(InjectedTuples4 as I) {
 			logic 
 				onTuple I: {
 					mutable timestamp ts = createTimestamp((int64)time_stamp, 0u);
@@ -96,10 +96,10 @@ composite NetflowStore {
 			}
 			config
 				placement: partitionColocation("NetflowStore");
-		}
+		}*/
 
 		/* Write to db */
-		stream<FlowType> insertIntoDB as O = JDBCRun(SqlStatement as I) {
+		/*stream<FlowType> insertIntoDB as O = JDBCRun(SqlStatement as I) {
 		//	logic 
 		//		onTuple I: printStringLn("insertIntoDB  : " +(rstring) I) ;
 			param
@@ -111,7 +111,7 @@ composite NetflowStore {
 				statementAttr	: sql;
 			config
 				placement: partitionColocation("NetflowStore");
-		}
+		}*/
 
 		/*
 		* Provide a raw view of the location stream
