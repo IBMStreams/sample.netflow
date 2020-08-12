@@ -56,15 +56,17 @@ This SPL application requires the following packages installed
 * Developers needs additionally the `libpcap-devel-1.8` package.
 
 # Directories
-There are 4 directories in this project:
 
-## demo
-The SPL application is located in this directory.
+## sample.netflow.viewer
+The SPL namespace directory. The SPL-application is located in this directory.
 
-`demo/NetflowViewer.spl`
+`sample.netflow.viewer/NetflowViewer.spl`
 
 ## geo
-GeLite2 Database files are located in `geo` directory.
+The directory contains the GeLite2 Database archive.
+
+## etc/geo
+GeLite2 Database files are located in `etc/geo` directory.
 ```
 geo/mergedIBMandMaxmindData.zip
 geo/GeoLite2-City-Blocks-IPv4.csv
@@ -78,7 +80,7 @@ You now need an account at Maxmind to download the GeLite2 Database.
 
 https://www.maxmind.com/en/accounts/332295/geoip/downloads
 
-## web
+## opt/web
 The Java scrips and html files are located in `web` directory.
 
 Lits of java scripts:

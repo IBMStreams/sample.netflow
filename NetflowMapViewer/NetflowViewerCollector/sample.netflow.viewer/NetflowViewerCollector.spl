@@ -3,14 +3,14 @@
 ** All Rights Reserved
 */
 
-namespace sample.netflow;
+namespace sample.netflow.viewer;
 
 use com.ibm.streamsx.network.ipv4::* ;
 use com.ibm.streamsx.network.source::* ;
 use com.ibm.streamsx.network.parse::* ;
 use com.ibm.streamsx.inet.http::HTTPRequest;
 
-composite NetflowCollector {
+composite NetflowViewerCollector {
 	param
 		expression<float64> $aggretationTime : (float64)getSubmissionTimeValue("aggretationTime", "5.0") ;
 		expression<rstring> $networkInterface :         getSubmissionTimeValue("networkInterface", "eth0") ;
