@@ -30,6 +30,8 @@ statistics and presents them centrally in a web display. The Netflow Map Viewer 
 The Netflow To Database Application is a demonstration for an application that collects network statistics and puts them in 
 a central database, the Netflow To Database Application is composed of 2 Streams Jobs: `NetflowStore` and `NetflowStoreCollector`.
 
+**Note:** The Netflow To Database Application is still under construction.
+
 ### NetflowStoreCollector
 
 * The `NetflowStoreCollector` collects the Netflow data from the router and makes the data aggregation and transmits the data to `NetflowStore`.
