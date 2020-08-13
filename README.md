@@ -49,6 +49,7 @@ This application requires the following Streams toolkits:
 * com.ibm.streamsx.network version 3.2.1 or higher
 * com.ibm.streamsx.inet version 3.1.0 or higher
 * com.ibm.streamsx.inetserver version 4.3.2 or higher
+
 Additionally the Netflow To Database Application requires toolkit:
 * com.ibm.streamsx.jdbc version 1.6.0
 
@@ -69,13 +70,22 @@ Import all existing projects to your workspace.
 Make sure that all required toolkits are listed in *Streams Explorer*
 Right click the project and select `Build`
 
-### Build with VsCode
+### Build with VsCode and IBM Streams extension
 
-tbd
+* Clone the repository or download the source archive.
+* Open the `Explorer View` and right click the workspace and select `Add Folder to Workspace`. Navigate to your project directory and select `add`.
+* In the `Streams Expolorere` connect to a Streams Instance, enter the credentials and refresh the toolkit list.
+* Go back to the `Explorer View`.
+* In the project directory right click the `Makefile` and select `build`.
+
+Now the sab-file is built and loaded to the output directory. If the request times out open the `Extension View`, select 
+the *IBM Streams* extension and open the `Extension Settings`. Increase the variable `Timeout For Requests`.
 
 ## Netflow Map Viewer Application
 
-Submit first the `NetflowViewer` job and provide the webserver port as submission time parameter. If the port is not provided, the default 6060 is used.
+Submit first the `NetflowViewer` job and provide the webserver port as submission time parameter. If the port is not provided, the default 6060 is used. 
+If this application is submitted to a Cloud Pak for Data instance, you should enter a job name for this job. The job name 
+is used from the streams-endpoint-monitor to build the path to the web server.
 
 Submit the `NetflowViewerCollector` job and provide the url of your `NetflowViewer` job as submission time parameter.
 
