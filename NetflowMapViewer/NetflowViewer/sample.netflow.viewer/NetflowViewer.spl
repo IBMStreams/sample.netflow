@@ -11,15 +11,15 @@ use com.ibm.streamsx.inet.wsserver::* ;
 
 /*
  * To see the netflow Data open:
- * http://<your host>/NetflowViewer/
+ * http://<your host>:<webserverPort>/NetflowViewer/
  * 
  * To see the raw location stream open:
- * http://<your host>/LocationStreamView/ports/input/0/tuples
+ * http://<your host>:<webserverPort>/LocationStreamView/ports/input/0/tuples
  * 
  * In a Cloud Pak for Data environment the url look like:
- * http://<your host>/<job name>/NetflowViewer/
+ * https://<exposed>/<job name>/NetflowViewer/
  * and 
- * http://<your host>/<job name>/LocationStreamView/ports/input/0/tuples
+ * https://<exposed>/<job name>/LocationStreamView/ports/input/0/tuples
  */
 composite NetflowViewer {
 	param
