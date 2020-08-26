@@ -17,9 +17,12 @@ composite NetflowStore {
 
 		expression<rstring> $jdbcDriverLib : "opt/db2jcc4.jar" ;
 		expression<rstring> $jdbcClassName : "com.ibm.db2.jcc.DB2Driver" ;
-		expression<rstring> $jdbcUrl : "jdbc:db2://tank1.fyre.ibm.com:50000/TESTDB2:retrieveMessagesFromServerOnGetMessage=true;" ;
+
+		// change these lines with your DB credentials
+		expression<rstring> $jdbcUrl : "jdbc:db2://<your-database-host>:50000/<db-name>:retrieveMessagesFromServerOnGetMessage=true;" ;
 		expression<rstring> $jdbcUser : "db2inst1" ;
-		expression<rstring> $jdbcPassword : "Ibm2blue-" ;
+		expression<rstring> $jdbcPassword : "db2-password" ;
+
 
 	type
 		FlowType = 
