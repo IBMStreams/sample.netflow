@@ -11,6 +11,12 @@ use com.ibm.streamsx.network.parse::* ;
 use com.ibm.streamsx.inet.http::HTTPRequest;
 use com.ibm.streamsx.inet.util::Serializer;
 
+/* helper function to create metric */
+stateful boolean createMyMetric() {
+	createCustomMetric("inputQueueSize", "inputQueueSize", Sys.Gauge, 0l);
+	return true;
+}
+
 composite NetflowViewerCollector {
 	param
 		expression<float64> $aggretationTime : (float64)getSubmissionTimeValue("aggretationTime", "5.0") ;
@@ -18,6 +24,7 @@ composite NetflowViewerCollector {
 		expression<rstring> $pcapFilename:              getSubmissionTimeValue("pcapFilename", "/etc/sample_netflow9_new.pcap" );
 		expression<float64> $period:           (float64)getSubmissionTimeValue("period", "3.0");
 		expression<rstring> $url:                       getSubmissionTimeValue("url", "https://streams-endpoint-monitor-zen.apps.cp4dstreams2.os.fyre.ibm.com/Netflow/InjectedTuples/ports/output/0/inject") ;
+		expression<int32>   $maxQueueSize:       (int32)getSubmissionTimeValue("maxQueueSize", "10000");
 		expression<boolean> $runOnce:          (boolean)getSubmissionTimeValue("runOnce", "false") ; //for debugging purposes run only one pcap file
 
 		expression<int32> $transmissionBurstTupleCount: 15000;
@@ -41,6 +48,7 @@ composite NetflowViewerCollector {
 		TransferType = list<FlowType> flowItems;
 		
 		HTTPResponseType = //The http response type carries information about the outcome of the requests
+			uint64 sequence,
 			rstring err,
 			rstring status,
 			int32 stat,
@@ -214,8 +222,78 @@ composite NetflowViewerCollector {
 				placement: partitionColocation("NetflowCollector");
 		}
 
-		/* send collection data to netflow viewer */
-		stream<HTTPResponseType> HTTPResponse = HTTPRequest(SerializedStream) {
+		/* the controller operator need a pace maker */
+		stream<uint64 iteration> PaceMakerStream as O = Beacon() {
+			param
+				period: 1.0;
+			output
+				O : iteration = IterationCount();
+			config
+				placement: partitionColocation("NetflowCollector");
+		}
+		
+		/* Controler operator maintains the list with the packages to transfer */
+		stream<uint64 sequence, blob binData> TransferStream as O = Custom(
+				SerializedStream as I;
+				PaceMakerStream as PM;
+				HTTPResponseStream2 as RET) {
+			logic
+				state : {
+					int32 maxQueueSize = $maxQueueSize;
+					mutable list<tuple<uint64 sequence, blob binData>> inputQueue = [];
+					mutable boolean transmissionInProgress = false;
+					boolean dummy = createMyMetric(); //create the metric during initialization
+				}
+				onTuple I : {
+					if (size(inputQueue) >= maxQueueSize) {
+						printStringLn("transfer tuple dropped sequence=" + (rstring)sequence);
+					} else {
+						appendM(inputQueue, I);
+						setCustomMetricValue("inputQueueSize", (int64)size(inputQueue));
+					}
+				}
+				onTuple PM : {
+					if ((size(inputQueue) > 0) && ! transmissionInProgress) {
+						transmissionInProgress = true;
+						submit(inputQueue[0], O);
+					}
+				}
+				onTuple RET : {
+					if (! transmissionInProgress) {
+						appTrc(Trace.error, "Severe error RET received but no transmissionInProgress");
+					} else {
+						if (size(inputQueue) == 0) {
+							appTrc(Trace.error, "Severe error sequence queue size is zero");
+							transmissionInProgress = false;
+						} else {
+							if (inputQueue[0].sequence != RET.sequence) {
+								appTrc(Trace.error, "Severe error sequence from RET not matching inputQueue[0].sequence=" + (rstring)inputQueue[0].sequence + " RET.sequence=" + (rstring)RET.sequence);
+								transmissionInProgress = false;
+							} else {
+								if ((err != "") || (stat < 200) || (stat > 299)) {
+									appTrc(Trace.warn, "Repeat transmission sequence=" + (rstring)inputQueue[0].sequence);
+									block(0.5);
+									submit(inputQueue[0], O);
+								} else {
+									removeM(inputQueue, 0);
+									setCustomMetricValue("inputQueueSize", (int64)size(inputQueue));
+									transmissionInProgress = false;
+									if (size(inputQueue) > 0) {
+										transmissionInProgress = true;
+										submit(inputQueue[0], O);
+									}
+								}
+							}
+						}
+					}
+				}
+			config
+				placement: partitionColocation("NetflowCollector");
+		}
+
+		/* send collection data to netflow viewer 
+		 * to avoid deadlocks in the feedback loop, put this in a separate pe */
+		stream<HTTPResponseType> HTTPResponseStream = HTTPRequest(TransferStream) {
 			param
 				fixedUrl: $url;
 				fixedMethod: POST;
@@ -230,20 +308,21 @@ composite NetflowViewerCollector {
 				requestBodyAttributeBin : "binData";
 				sslAcceptAllCertificates: true;
 			config
-				placement: partitionColocation("NetflowCollector");
+				placement: partitionExlocation("myPartitionExlocationId");
 		}
 
 		/* Log the results */
-		() as PrintResponse = Custom(HTTPResponse as I) {
+		stream<I> HTTPResponseStream2 as O = Custom(HTTPResponseStream as I) {
 			logic
 				onTuple I : {
 					if ((err != "") || (stat < 200) || (stat > 299)) {
-						printStringLn("HTTPResponse : " +(rstring)I) ;
+						appTrc(Trace.error, "HTTPResponse : " +(rstring)I) ;
 					} else {
-						printStringLn("HTTPStatus : " +status) ;
+						appTrc(Trace.info, "HTTPStatus : " +status + " sequence : " + (rstring)sequence);
 					}
+					submit(I, O);
 				}
 				config
-					placement: partitionColocation("NetflowCollector");
+					placement: partitionColocation("NetflowCollector"), partitionExlocation("myPartitionExlocationId");
 		}
 }
