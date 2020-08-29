@@ -8,6 +8,7 @@ namespace sample.netflow.viewer;
 use com.ibm.streamsx.network.location::* ;
 use com.ibm.streamsx.inet.rest::* ;
 use com.ibm.streamsx.inet.wsserver::* ;
+use com.ibm.streamsx.inet.util::Deserializer;
 
 /*
  * To see the netflow Data open:
@@ -39,7 +40,9 @@ composite NetflowViewer {
 			uint8 flowProtocol, // IP protocol number of flow, usually 1 for "icmp", 6 for "tcp", or 17 for "udp"
 			float64 flowDuration, // duration of flow, in seconds
 			uint64 flowSize ; // size of flow, in bytes
-		
+
+		TransferType = list<FlowType> flowItems;
+
 		LocatedFlowType = 
 			rstring srcLocationID, 
 			boolean srcInternal, 
@@ -73,27 +76,27 @@ composite NetflowViewer {
 	graph
 
 		/* receive tuples from NetflowCollector */
-		stream<rstring windowContent> InjectedTuples = HTTPTupleInjection() {
+		stream<blob binData> InjectedTuples = HTTPBLOBInjection() {
 			param
 				port: $webserverPort;
 			config
 				placement: partitionColocation("NetflowViewer");
 		}
 
-		/* revert the sender transformation : convert to string*/
-		@catch(exception=all, tupleTrace=true, stackTrace=false) 
-		stream<list<FlowType> windowContent> InjectedTuples2 as O = Custom(InjectedTuples as I) {
-			logic onTuple I : submit({windowContent=(list<FlowType>)I.windowContent}, O);
+		/* revert the sender transformation : convert to tuples*/
+		stream<TransferType> FlowItemsStream as O = Deserializer(InjectedTuples as I) {
+			param
+				serializedData: binData;
 			config
 				placement: partitionColocation("NetflowViewer");
 		}
 
-		/* revert the sender transformation : convert to tuples*/
-		stream<FlowType> InjectedTuples3 as O = Custom(InjectedTuples2 as I) {
+		/* restore the single items from list */
+		stream<FlowType> InjectedTuples3 as O = Custom(FlowItemsStream as I) {
 			logic onTuple I : {
 				mutable int32 i = 0;
-				while (i < size(I.windowContent)) {
-					submit(I.windowContent[i], O);
+				while (i < size(I.flowItems)) {
+					submit(I.flowItems[i], O);
 					++i;
 				}
 			}

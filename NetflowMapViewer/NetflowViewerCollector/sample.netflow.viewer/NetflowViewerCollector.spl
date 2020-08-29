@@ -9,6 +9,7 @@ use com.ibm.streamsx.network.ipv4::* ;
 use com.ibm.streamsx.network.source::* ;
 use com.ibm.streamsx.network.parse::* ;
 use com.ibm.streamsx.inet.http::HTTPRequest;
+use com.ibm.streamsx.inet.util::Serializer;
 
 composite NetflowViewerCollector {
 	param
@@ -19,7 +20,7 @@ composite NetflowViewerCollector {
 		expression<rstring> $url:                       getSubmissionTimeValue("url", "https://streams-endpoint-monitor-zen.apps.cp4dstreams2.os.fyre.ibm.com/Netflow/InjectedTuples/ports/output/0/inject") ;
 		expression<boolean> $runOnce:          (boolean)getSubmissionTimeValue("runOnce", "false") ; //for debugging purposes run only one pcap file
 
-		expression<int32> $transmissionBurstTupleCount: 500;
+		expression<int32> $transmissionBurstTupleCount: 15000;
 
 	type
 		PacketType = 
@@ -37,6 +38,8 @@ composite NetflowViewerCollector {
 			float64 flowDuration, // duration of flow, in seconds
 			uint64 flowSize ; // size of flow, in bytes
 
+		TransferType = list<FlowType> flowItems;
+		
 		HTTPResponseType = //The http response type carries information about the outcome of the requests
 			rstring err,
 			rstring status,
@@ -182,19 +185,19 @@ composite NetflowViewerCollector {
 		/* concatenate the transmission data
 		 * build a list tuple for each window; limit size to $transmissionBurstTupleCount
 		 */
-		stream<list<FlowType> windowContent> AggregateStream2 as O = Custom(AggregateStream as I) {
+		stream<TransferType> AggregateStream2 as O = Custom(AggregateStream as I) {
 			logic
 				state : mutable list<FlowType> theList = [];
 				onTuple I : {
 					appendM(theList, I);
 					if (size(theList) >= $transmissionBurstTupleCount) {
-						submit({windowContent=theList}, O);
+						submit({flowItems = theList}, O);
 						clearM(theList);
 					}
 				}
 				onPunct I : {
 					if (size(theList) > 0) {
-						submit({windowContent=theList}, O);
+						submit({flowItems = theList}, O);
 						clearM(theList);
 					}
 				}
@@ -202,15 +205,17 @@ composite NetflowViewerCollector {
 				placement: partitionColocation("NetflowCollector");
 		}
 
-		/* cast the list to rstring */
-		stream<rstring windowContent> AggregateStream3 as O = Custom(AggregateStream2 as I) {
-			logic onTuple I : submit({windowContent=(rstring)I.windowContent}, O);
+		/* serialize the tuple for an effective line format */
+		stream<uint64 sequence, blob binData> SerializedStream as O = Serializer(AggregateStream2 as I) {
+			output
+				O: binData = serialized(),
+				sequence = sequence();
 			config
 				placement: partitionColocation("NetflowCollector");
 		}
 
 		/* send collection data to netflow viewer */
-		stream<HTTPResponseType> HTTPResponse = HTTPRequest(AggregateStream3) {
+		stream<HTTPResponseType> HTTPResponse = HTTPRequest(SerializedStream) {
 			param
 				fixedUrl: $url;
 				fixedMethod: POST;
@@ -221,8 +226,8 @@ composite NetflowViewerCollector {
 				outputContentType : "contentType";
 				outputHeader : "responseHeader";
 				errorDiagnostics : "err";
-				fixedContentType : "application/x-www-form-urlencoded";
-				requestAttributes : "windowContent";
+				fixedContentType : "application/octet-stream";
+				requestBodyAttributeBin : "binData";
 				sslAcceptAllCertificates: true;
 			config
 				placement: partitionColocation("NetflowCollector");
