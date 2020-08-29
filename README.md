@@ -49,7 +49,7 @@ a central database, the Netflow To Database Application is composed of 2 Streams
 This application requires the following Streams toolkits:
 
 * com.ibm.streamsx.network version 3.2.1 or higher
-* com.ibm.streamsx.inet version 3.1.0 or higher
+* com.ibm.streamsx.inet version 3.3.0 or higher
 * com.ibm.streamsx.inetserver version 4.3.2 or higher
 
 Additionally the Netflow To Database Application requires toolkit:

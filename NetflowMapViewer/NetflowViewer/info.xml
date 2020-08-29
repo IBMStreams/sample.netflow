@@ -15,5 +15,9 @@
       <common:name>com.ibm.streamsx.inetserver</common:name>
       <common:version>[4.3.2,5.0.0)</common:version>
     </info:toolkit>
+    <info:toolkit>
+      <common:name>com.ibm.streamsx.inet</common:name>
+      <common:version>[3.3.0,4.0.0)</common:version>
+    </info:toolkit>
   </info:dependencies>
 </info:toolkitInfoModel>

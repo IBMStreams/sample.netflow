@@ -20,7 +20,7 @@ else ifdef STREAMS_BUILDSERVICE
     endif
     SPLC = $(STREAMS_INSTALL)/bin/sc
     OUTPUT_DIR = output
-    TOOLKIT_PATH = $(STREAMS_INSTALL)/toolkits
+    TOOLKIT_PATH = ../toolkits:$(STREAMS_INSTALL)/toolkits
 else
     $(info Building using environment settings)
     ifndef STREAMS_INSTALL
