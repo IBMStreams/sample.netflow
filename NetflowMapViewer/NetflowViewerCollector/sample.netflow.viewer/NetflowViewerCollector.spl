@@ -19,13 +19,14 @@ stateful boolean createMyMetric() {
 
 composite NetflowViewerCollector {
 	param
-		expression<float64> $aggretationTime : (float64)getSubmissionTimeValue("aggretationTime", "5.0") ;
-		expression<rstring> $networkInterface :         getSubmissionTimeValue("networkInterface", "eth0") ;
-		expression<rstring> $pcapFilename:              getSubmissionTimeValue("pcapFilename", "/etc/sample_netflow9_new.pcap" );
-		expression<float64> $period:           (float64)getSubmissionTimeValue("period", "3.0");
-		expression<rstring> $url:                       getSubmissionTimeValue("url", "https://streams-endpoint-monitor-zen.apps.cp4dstreams2.os.fyre.ibm.com/Netflow/InjectedTuples/ports/output/0/inject") ;
-		expression<int32>   $maxQueueSize:       (int32)getSubmissionTimeValue("maxQueueSize", "10000");
-		expression<boolean> $runOnce:          (boolean)getSubmissionTimeValue("runOnce", "false") ; //for debugging purposes run only one pcap file
+		expression<float64> $aggretationTime :   (float64)getSubmissionTimeValue("aggretationTime", "5.0") ;
+		expression<rstring> $networkInterface :           getSubmissionTimeValue("networkInterface", "eth0") ;
+		expression<rstring> $pcapFilename:                getSubmissionTimeValue("pcapFilename", "/etc/sample_netflow9_new.pcap" );
+		expression<float64> $period:             (float64)getSubmissionTimeValue("period", "3.0");
+		expression<rstring> $url:                         getSubmissionTimeValue("url", "https://streams-endpoint-monitor-zen.apps.cp4dstreams2.os.fyre.ibm.com/Netflow/InjectedTuples/ports/output/0/inject") ;
+		expression<int32>   $maxQueueSize:         (int32)getSubmissionTimeValue("maxQueueSize", "10000");
+		expression<uint32>  $iterateTypeListCount:(uint32)getSubmissionTimeValue("iterateTypeListCount", "10");
+		expression<boolean> $runOnce:            (boolean)getSubmissionTimeValue("runOnce", "false") ; //for debugging purposes run only one pcap file
 
 		expression<int32> $transmissionBurstTupleCount: 15000;
 
@@ -215,6 +216,8 @@ composite NetflowViewerCollector {
 
 		/* serialize the tuple for an effective line format */
 		stream<uint64 sequence, blob binData> SerializedStream as O = Serializer(AggregateStream2 as I) {
+			param
+				iterateTypeListCount: $iterateTypeListCount;
 			output
 				O: binData = serialized(),
 				sequence = sequence();
@@ -246,7 +249,12 @@ composite NetflowViewerCollector {
 				}
 				onTuple I : {
 					if (size(inputQueue) >= maxQueueSize) {
-						printStringLn("transfer tuple dropped sequence=" + (rstring)sequence);
+						appTrc(Trace.error, "Queue max size (" + (rstring)maxQueueSize + ")  reached. Tuple with sequence "
+							+ (rstring)sequence + " dropped.");
+						//drop oldest tuple 
+						removeM(inputQueue, 0);
+						appendM(inputQueue, I);
+						setCustomMetricValue("inputQueueSize", (int64)size(inputQueue));
 					} else {
 						appendM(inputQueue, I);
 						setCustomMetricValue("inputQueueSize", (int64)size(inputQueue));
@@ -267,21 +275,20 @@ composite NetflowViewerCollector {
 							transmissionInProgress = false;
 						} else {
 							if (inputQueue[0].sequence != RET.sequence) {
-								appTrc(Trace.error, "Severe error sequence from RET not matching inputQueue[0].sequence=" + (rstring)inputQueue[0].sequence + " RET.sequence=" + (rstring)RET.sequence);
-								transmissionInProgress = false;
+								appTrc(Trace.info, "Sequence from RET not matching inputQueue[0].sequence="
+									+ (rstring)inputQueue[0].sequence + " RET.sequence=" + (rstring)RET.sequence
+									+ " Tuples dropped.");
+							}
+							if ((err != "") || (stat < 200) || (stat > 299)) {
+								appTrc(Trace.warn, "Repeat transmission sequence=" + (rstring)inputQueue[0].sequence);
+								submit(inputQueue[0], O);
 							} else {
-								if ((err != "") || (stat < 200) || (stat > 299)) {
-									appTrc(Trace.warn, "Repeat transmission sequence=" + (rstring)inputQueue[0].sequence);
-									block(0.5);
+								removeM(inputQueue, 0);
+								setCustomMetricValue("inputQueueSize", (int64)size(inputQueue));
+								transmissionInProgress = false;
+								if (size(inputQueue) > 0) {
+									transmissionInProgress = true;
 									submit(inputQueue[0], O);
-								} else {
-									removeM(inputQueue, 0);
-									setCustomMetricValue("inputQueueSize", (int64)size(inputQueue));
-									transmissionInProgress = false;
-									if (size(inputQueue) > 0) {
-										transmissionInProgress = true;
-										submit(inputQueue[0], O);
-									}
 								}
 							}
 						}
@@ -308,7 +315,7 @@ composite NetflowViewerCollector {
 				requestBodyAttributeBin : "binData";
 				sslAcceptAllCertificates: true;
 			config
-				placement: partitionExlocation("myPartitionExlocationId");
+				placement: partitionColocation("NetflowCollector");
 		}
 
 		/* Log the results */
@@ -317,12 +324,15 @@ composite NetflowViewerCollector {
 				onTuple I : {
 					if ((err != "") || (stat < 200) || (stat > 299)) {
 						appTrc(Trace.error, "HTTPResponse : " +(rstring)I) ;
+						block(0.5);
 					} else {
 						appTrc(Trace.info, "HTTPStatus : " +status + " sequence : " + (rstring)sequence);
 					}
 					submit(I, O);
 				}
 				config
-					placement: partitionColocation("NetflowCollector"), partitionExlocation("myPartitionExlocationId");
+					//Introduce queue here to make a new thread context for the feedback loop
+					threadedPort : queue(I, Sys.Wait, 10);
+					placement: partitionColocation("NetflowCollector");
 		}
 }
