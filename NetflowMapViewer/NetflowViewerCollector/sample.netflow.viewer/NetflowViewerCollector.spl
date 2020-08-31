@@ -11,9 +11,10 @@ use com.ibm.streamsx.network.parse::* ;
 use com.ibm.streamsx.inet.http::HTTPRequest;
 use com.ibm.streamsx.inet.util::Serializer;
 
-/* helper function to create metric */
-stateful boolean createMyMetric() {
-	createCustomMetric("inputQueueSize", "inputQueueSize", Sys.Gauge, 0l);
+/* helper function to create custom metrics during operator initialization */
+stateful boolean createMyMetrics() {
+	createCustomMetric("nInputTuplesQueued", "nInputTuplesQueued: Number of tuple waiting for transmission", Sys.Gauge, 0l);
+	createCustomMetric("nInputTuplesDropped", "nInputTuplesDropped: Number of dropped tuples", Sys.Counter, 0l);
 	return true;
 }
 
@@ -245,7 +246,7 @@ composite NetflowViewerCollector {
 					int32 maxQueueSize = $maxQueueSize;
 					mutable list<tuple<uint64 sequence, blob binData>> inputQueue = [];
 					mutable boolean transmissionInProgress = false;
-					boolean dummy = createMyMetric(); //create the metric during initialization
+					boolean dummy = createMyMetrics(); //create the metric during initialization
 				}
 				onTuple I : {
 					if (size(inputQueue) >= maxQueueSize) {
@@ -254,10 +255,14 @@ composite NetflowViewerCollector {
 						//drop oldest tuple 
 						removeM(inputQueue, 0);
 						appendM(inputQueue, I);
-						setCustomMetricValue("inputQueueSize", (int64)size(inputQueue));
+						setCustomMetricValue("nInputTuplesQueued", (int64)size(inputQueue));
+						mutable int64 tuplesDropped = 0l;
+						getCustomMetricValue("nInputTuplesDropped", tuplesDropped);
+						++tuplesDropped;
+						setCustomMetricValue("nInputTuplesDropped", tuplesDropped);
 					} else {
 						appendM(inputQueue, I);
-						setCustomMetricValue("inputQueueSize", (int64)size(inputQueue));
+						setCustomMetricValue("nInputTuplesQueued", (int64)size(inputQueue));
 					}
 				}
 				onTuple PM : {
@@ -284,7 +289,7 @@ composite NetflowViewerCollector {
 								submit(inputQueue[0], O);
 							} else {
 								removeM(inputQueue, 0);
-								setCustomMetricValue("inputQueueSize", (int64)size(inputQueue));
+								setCustomMetricValue("nInputTuplesQueued", (int64)size(inputQueue));
 								transmissionInProgress = false;
 								if (size(inputQueue) > 0) {
 									transmissionInProgress = true;
