@@ -24,12 +24,15 @@ composite NetflowViewerCollector {
 		expression<rstring> $networkInterface :           getSubmissionTimeValue("networkInterface", "eth0") ;
 		expression<rstring> $pcapFilename:                getSubmissionTimeValue("pcapFilename", "/etc/sample_netflow9_new.pcap" );
 		expression<float64> $period:             (float64)getSubmissionTimeValue("period", "3.0");
-		expression<rstring> $url:                         getSubmissionTimeValue("url", "https://streams-endpoint-monitor-zen.apps.cp4dstreams2.os.fyre.ibm.com/Netflow/InjectedTuples/ports/output/0/inject") ;
-		expression<int32>   $maxQueueSize:         (int32)getSubmissionTimeValue("maxQueueSize", "10000");
+		expression<rstring> $url:                         getSubmissionTimeValue(
+			"url", "https://streams-endpoint-monitor-zen.apps.cp4dstreams2.os.fyre.ibm.com/Netflow/InjectedTuples/ports/output/0/inject") ;
 		expression<uint32>  $iterateTypeListCount:(uint32)getSubmissionTimeValue("iterateTypeListCount", "10");
 		expression<boolean> $runOnce:            (boolean)getSubmissionTimeValue("runOnce", "false") ; //for debugging purposes run only one pcap file
 
+		//The binary size of the FlowType is 33 bytes -> the maximum size of an transmission unit is approximately 495000 bytes
 		expression<int32> $transmissionBurstTupleCount: 15000;
+		// the maxQueueSize must be adapted to the available memory it stores max. transmission unit size * maxQueueSize = 4,950,000,000
+		expression<int32>   $maxQueueSize:         (int32)getSubmissionTimeValue("maxQueueSize", "10000");
 
 	type
 		PacketType = 
