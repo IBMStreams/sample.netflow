@@ -28,6 +28,7 @@ composite NetflowViewerCollector {
 			"url", "https://streams-endpoint-monitor-zen.apps.cp4dstreams2.os.fyre.ibm.com/Netflow/InjectedTuples/ports/output/0/inject") ;
 		expression<uint32>  $iterateTypeListCount:(uint32)getSubmissionTimeValue("iterateTypeListCount", "10");
 		expression<boolean> $runOnce:            (boolean)getSubmissionTimeValue("runOnce", "false") ; //for debugging purposes run only one pcap file
+		expression<float64> $waitBerforeTransmissionRepetition:(float64)getSubmissionTimeValue("waitBerforeTransmissionRepetition", "1.5");
 
 		//The binary size of the FlowType is 33 bytes -> the maximum size of an transmission unit is approximately 495000 bytes
 		expression<int32> $transmissionBurstTupleCount: 15000;
@@ -288,8 +289,10 @@ composite NetflowViewerCollector {
 									+ " Tuples dropped.");
 							}
 							if ((err != "") || (stat < 200) || (stat > 299)) {
-								appTrc(Trace.warn, "Repeat transmission sequence=" + (rstring)inputQueue[0].sequence);
-								submit(inputQueue[0], O);
+								if ( ! isShutdown()) {
+									appTrc(Trace.warn, "Repeat transmission sequence=" + (rstring)inputQueue[0].sequence);
+									submit(inputQueue[0], O);
+								}
 							} else {
 								removeM(inputQueue, 0);
 								setCustomMetricValue("nInputTuplesQueued", (int64)size(inputQueue));
@@ -329,10 +332,11 @@ composite NetflowViewerCollector {
 		/* Log the results */
 		stream<I> HTTPResponseStream2 as O = Custom(HTTPResponseStream as I) {
 			logic
+				state : float64 waitBerforeTransmissionRepetition = $waitBerforeTransmissionRepetition;
 				onTuple I : {
 					if ((err != "") || (stat < 200) || (stat > 299)) {
 						appTrc(Trace.error, "HTTPResponse : " +(rstring)I) ;
-						block(0.5);
+						block(waitBerforeTransmissionRepetition);
 					} else {
 						appTrc(Trace.info, "HTTPStatus : " +status + " sequence : " + (rstring)sequence);
 					}
