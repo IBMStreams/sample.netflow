@@ -6,6 +6,12 @@
 # assume toolkit default locations
 STREAMS_INETSERVER_TOOLKIT ?= ${STREAMS_INSTALL}/toolkits/com.ibm.streamsx.inetserver
 STREAMS_NETWORK_TOOLKIT ?= ${STREAMS_INSTALL}/toolkits/com.ibm.streamsx.network
+STREAMS_INET_TOOLKIT ?= ${STREAMS_INSTALL}/toolkits/com.ibm.streamsx.inet
+
+SPL_MAIN_COMPOSITE = sample.netflow.viewer::NetflowViewer
+
+SPLC_FLAGS ?= -a
+SPL_CMD_ARGS ?=
 
 ifeq ($(STREAMS_STUDIO_BUILDING), 1)
     $(info Building from Streams Studio, use env vars set by studio)
@@ -21,6 +27,7 @@ else ifdef STREAMS_BUILDSERVICE
     SPLC = $(STREAMS_INSTALL)/bin/sc
     OUTPUT_DIR = output
     TOOLKIT_PATH = ../toolkits:$(STREAMS_INSTALL)/toolkits
+    SPLC_FLAGS := $(SPLC_FLAGS) --rebuild-toolkits
 else
     $(info Building using environment settings)
     ifndef STREAMS_INSTALL
@@ -28,17 +35,12 @@ else
     endif
     SPLC = $(STREAMS_INSTALL)/bin/sc
     OUTPUT_DIR = output
-    TOOLKIT_PATH = $(STREAMS_INETSERVER_TOOLKIT):$(STREAMS_NETWORK_TOOLKIT)
+    TOOLKIT_PATH = $(STREAMS_INETSERVER_TOOLKIT):$(STREAMS_NETWORK_TOOLKIT):$(STREAMS_INET_TOOLKIT)
 endif
-
-SPLC_FLAGS ?= -a
-SPL_CMD_ARGS ?=
-
-SPL_MAIN_COMPOSITE = sample.netflow.viewer::NetflowViewer
 
 # We are in Cloud Pak for Data environment: do not use data directory
 build: geofiles
-	$(SPLC) $(SPLC_FLAGS) -M $(SPL_MAIN_COMPOSITE) -t ${TOOLKIT_PATH} --output-dir $(OUTPUT_DIR) --rebuild-toolkits $(SPL_CMD_ARGS)
+	$(SPLC) $(SPLC_FLAGS) -M $(SPL_MAIN_COMPOSITE) -t ${TOOLKIT_PATH} --output-dir $(OUTPUT_DIR) $(SPL_CMD_ARGS)
 
 build-clean:
 	$(SPLC) -C $(SPLC_FLAGS) -M $(SPL_MAIN_COMPOSITE) -t ${TOOLKIT_PATH} --output-dir $(OUTPUT_DIR) -C $(SPL_CMD_ARGS)
