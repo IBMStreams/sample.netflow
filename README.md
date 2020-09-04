@@ -2,7 +2,7 @@
 
 This repository contains artifacts for 2 different applications [Netflow Map Viewer Application](README.md#netflow-map-viewer-application) and the [Netflow To Database Application](README.md#netflow-to-database-application).
 
-Both applications collect and aggregate network traffic data from IP routers or L3 switches. 
+Both applications simulate the collection of network traffic data from IP routers or L3 switches. 
 The Netflow messages are parsed and the data volume is aggregated. The transferred data volumes per source/destination/protocol-group is transferred 
 from the collector job to the viewer or store job. 
 The aggregation time interval can be configured. 
@@ -11,12 +11,12 @@ The Netflow To Database Application stores the aggregated data into a database.
 
 ## Netflow Map Viewer Application
 
-The Netflow Map Viewer Application is a is simple out of the box running demonstration for an application that collects network 
+The Netflow Map Viewer Application is a is simple out of the box running demonstration for an application that simulates the collection of network 
 statistics and presents them centrally in a web display. The Netflow Map Viewer Application is composed of 2 jobs; the `NetflowViewerCollector` and the `NetflowViewer`.
 
 ### NetflowViewerCollector
 
-* The `NetflowViewerCollector` collects the Netflow data from the Edge devices, makes the first data aggregation and transmits the data to `NetflowViewer`.
+* The `NetflowViewerCollector` simulates the collection of Netflow data from Edge devices, makes the first data aggregation and transmits the data to `NetflowViewer`.
 * The connection from `NetflowViewerCollector` to `NetflowViewer` is currently a HTTP Post and requires the Endpoint-Monitor application in Cloud Pak for Data.
 
 ### NetflowViewer
@@ -125,9 +125,12 @@ Now you must package the Edge application Image see (Packaging and edge app)[htt
 ### Run the NetflowViewer job
 
 If you run this sample in an Clod Pack for Data Streams Instance you must install the [Streams Endpoint Monitor](https://github.com/IBMStreams/endpoint-monitor) 
-The [README.md](https://github.com/IBMStreams/endpoint-monitor/blob/develop/README.md) contains the installation instructions.
+The [README.md](https://github.com/IBMStreams/endpoint-monitor/blob/develop/README.md) contains the installation instructions.  
 
-Submit first the `NetflowViewer` job and provide the webserver port as submission time parameter. If the port is not provided, the default 6060 is used. 
+The `NetflowViewer` requires a certain amount of memory for the ip-location database. If you are going to run this job on a Clod Pack for Data Streams instance, you must increase 
+the default Memory limit to 4GiB for the Applocation pod of this instance.  
+
+Submit first the `NetflowViewer` job and provide the webserver port as submission time parameter. If the port is not provided, the default 6060 is used.  
 If this application is submitted to a Cloud Pak for Data instance, you should enter a job name for this job. The job name 
 is used from the streams-endpoint-monitor to build the path to the web server.
 
