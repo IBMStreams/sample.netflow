@@ -118,7 +118,7 @@ directory, go to sub-directory `NetflowMapViewer/NetflowViewerCollector` and sel
 
 Now the edge application image is build an pushed into the Openshift Image registry. 
 
-Now you must package the Edge application Image see (Packaging and edge app)[https://www.ibm.com/support/knowledgecenter/SSQNUZ_3.0.1/svc-edge/usage-register-app.html]
+Now you must package the Edge application Image see [Packaging and edge app](https://www.ibm.com/support/knowledgecenter/SSQNUZ_3.0.1/svc-edge/usage-register-app.html)
 
 ## Run Netflow Map Viewer Application
 
