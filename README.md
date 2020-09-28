@@ -118,7 +118,7 @@ directory, go to sub-directory `NetflowMapViewer/NetflowViewerCollector` and sel
 
 Now the edge application image is build an pushed into the Openshift Image registry. 
 
-Now you must package the Edge application Image see (Packaging and edge app)[https://www.ibm.com/support/knowledgecenter/SSQNUZ_3.5.0/svc-edge/usage-register-app.html]
+Now you must package the Edge application Image see (Packaging and edge app)[https://www.ibm.com/support/knowledgecenter/SSQNUZ_3.0.1/svc-edge/usage-register-app.html]
 
 ## Run Netflow Map Viewer Application
 
@@ -142,7 +142,7 @@ If you are using an on premise Streams instance, submit the `NetflowViewerCollec
 
 To start the NetflowViewerCollector on an Micro Edge System, use the packaged edge application image from 
 [Build the Edge Application Image NetflowViewerCollector with VsCode and IBM Streams extension](README.md#Build-the-edge-application-image-netflowViewerCollector-with-vscode-and-ibm-streams-extension) and 
-follow the steps in [Deploying and edge app](https://www.ibm.com/support/knowledgecenter/SSQNUZ_3.5.0/svc-edge/usage-deploy.html)
+follow the steps in [Deploying and edge app](https://www.ibm.com/support/knowledgecenter/SSQNUZ_3.0.1/svc-edge/usage-deploy.html)
 
 ### Url Configuration
 
