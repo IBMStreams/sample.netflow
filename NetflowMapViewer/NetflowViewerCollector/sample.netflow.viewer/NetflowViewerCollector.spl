@@ -323,7 +323,7 @@ composite NetflowViewerCollector {
 				outputHeader : "responseHeader";
 				errorDiagnostics : "err";
 				fixedContentType : "application/octet-stream";
-				requestBodyAttributeBin : "binData";
+				requestBodyAttributeBin : binData;
 				sslAcceptAllCertificates: true;
 			config
 				placement: partitionColocation("NetflowCollector");
